@@ -59,7 +59,7 @@ func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 		responseText = "Thanks for forwarding this message! I've received it and will organize it for you."
 		log.Printf("Forwarded message from %s: %s", message.ForwardFrom.FirstName, message.Text)
 	} else {
-		responseText = "Hello Nigger!!!! You said: " + message.Text
+		responseText = "Hello Nigger!!!!? You said: " + message.Text
 	}
 
 	msg := tgbotapi.NewMessage(message.Chat.ID, responseText)

@@ -64,7 +64,7 @@ jobs:
         cd functions/bot
         zip -r bot.zip main.go go.mod
         yc serverless function version create \
-          --function-name=tg-backend \
+          --function-id=d4eqrudr11gga4ooul1b \
           --runtime=golang121 \
           --entrypoint=main.Handler \
           --memory=128m \
@@ -99,7 +99,7 @@ jobs:
         cd functions/api
         zip -r api.zip main.go go.mod
         yc serverless function version create \
-          --function-name=tg-backend \
+          --function-id=d4eqrudr11gga4ooul1b \
           --runtime=golang121 \
           --entrypoint=main.Handler \
           --memory=256m \
