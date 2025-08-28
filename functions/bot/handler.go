@@ -20,7 +20,7 @@ func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql.DB) 
 	if message.IsCommand() {
 		switch message.Command() {
 		case "start":
-			responseText = "Hello! I'm your Telegram Content Organizer bot. Send me any message or forward content to me!"
+			responseText = "Hello! I'm your Telegram Content Organizer bot. Send me any message or forward content to me!?"
 		case "help":
 			responseText = "Available commands:\n/start - Get started\n/help - Show this help message\n\nYou can also send me any message or forward content to me."
 		default:
