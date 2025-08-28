@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"log"
 	"os"
@@ -11,7 +12,18 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
+var db *sql.DB
+
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	// Initialize database connection if not already done
+	if db == nil {
+		var err error
+		db, err = initDB()
+		if err != nil {
+			log.Printf("Failed to connect to database: %v", err)
+			return events.APIGatewayProxyResponse{StatusCode: 500}, nil
+		}
+	}
 	// Get bot token from environment
 	botToken := os.Getenv("TELEGRAM_BOT_TOKEN")
 	if botToken == "" {
@@ -35,39 +47,10 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 
 	// Handle the message
 	if update.Message != nil {
-		handleMessage(bot, update.Message)
+		handleMessage(bot, update.Message, db)
 	}
 
 	return events.APIGatewayProxyResponse{StatusCode: 200}, nil
-}
-
-func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
-	log.Printf("[%s] %s", message.From.UserName, message.Text)
-
-	var responseText string
-
-	if message.IsCommand() {
-		switch message.Command() {
-		case "start":
-			responseText = "Hello! I'm your Telegram Content Organizer bot. Send me any message or forward content to me!"
-		case "help":
-			responseText = "Available commands:\n/start - Get started\n/help - Show this help message\n\nYou can also send me any message or forward content to me."
-		default:
-			responseText = "Unknown command. Use /help to see available commands."
-		}
-	} else if message.ForwardFrom != nil {
-		responseText = "Thanks for forwarding this message! I've received it and will organize it for you."
-		log.Printf("Forwarded message from %s: %s", message.ForwardFrom.FirstName, message.Text)
-	} else {
-		responseText = "Hello Nigger!!!!? You said: " + message.Text
-	}
-
-	msg := tgbotapi.NewMessage(message.Chat.ID, responseText)
-	msg.ReplyToMessageID = message.MessageID
-
-	if _, err := bot.Send(msg); err != nil {
-		log.Printf("Error sending message: %v", err)
-	}
 }
 
 func main() {
