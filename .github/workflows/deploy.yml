@@ -70,7 +70,8 @@ jobs:
           --memory=128m \
           --execution-timeout=5s \
           --source-path=bot.zip \
-          --environment TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}"
+          --environment TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}" \
+          --secret id=e6qbqd22iqgdodsr88h9,version-id=e6qma8o20k79tg7plg9g,key=DATABASE_URL,environment-variable=DATABASE_URL
 
   deploy-api:
     runs-on: ubuntu-latest
