@@ -62,7 +62,7 @@ jobs:
     - name: Deploy bot function
       run: |
         cd functions/bot
-        zip -r bot.zip main.go go.mod
+        zip -r bot.zip *.go go.mod go.sum
         yc serverless function version create \
           --function-id=d4eqrudr11gga4ooul1b \
           --runtime=golang121 \
