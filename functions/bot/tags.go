@@ -83,13 +83,13 @@ func showTagSelection(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql.D
 
 	var responseText string
 	if len(tags) == 0 {
-		responseText = "You don't have any tags yet. Reply with a tag name to create your first tag:"
+		responseText = fmt.Sprintf("You don't have any tags yet. Reply with a tag name to create your first tag:\n\n[MSG_ID:%d]", message.MessageID)
 	} else {
-		responseText = "Choose a tag by typing its name or create a new one:\n\n"
+		responseText = fmt.Sprintf("Choose a tag by typing its name or create a new one:\n\n")
 		for i, tag := range tags {
 			responseText += fmt.Sprintf("%d. %s\n", i+1, tag.Name)
 		}
-		responseText += "\nOr type a new tag name to create it."
+		responseText += fmt.Sprintf("\nOr type a new tag name to create it.\n\n[MSG_ID:%d]", message.MessageID)
 	}
 
 	msg := tgbotapi.NewMessage(message.Chat.ID, responseText)
@@ -102,27 +102,38 @@ func showTagSelection(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql.D
 }
 
 func handleTagSelection(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql.DB) {
-	// Debug logging to understand the reply chain structure
-	log.Printf("DEBUG: User message ID: %d", message.MessageID)
-	log.Printf("DEBUG: User message text: %s", message.Text)
-	
+	// Extract original message ID from the bot's tag selection message
 	if message.ReplyToMessage == nil {
-		log.Printf("DEBUG: No ReplyToMessage found")
+		log.Printf("No ReplyToMessage found")
 		sendErrorMessage(bot, message, "This doesn't appear to be a reply.")
 		return
 	}
 	
-	log.Printf("DEBUG: Bot message ID: %d", message.ReplyToMessage.MessageID)
-	log.Printf("DEBUG: Bot message text: %s", message.ReplyToMessage.Text)
-	
-	if message.ReplyToMessage.ReplyToMessage == nil {
-		log.Printf("DEBUG: Bot message has no ReplyToMessage")
+	// Parse the original message ID from the tag selection message text
+	botMessageText := message.ReplyToMessage.Text
+	msgIDStart := strings.Index(botMessageText, "[MSG_ID:")
+	if msgIDStart == -1 {
+		log.Printf("Could not find MSG_ID in bot message: %s", botMessageText)
 		sendErrorMessage(bot, message, "Could not find the original message to tag.")
 		return
 	}
 	
-	log.Printf("DEBUG: Original message ID: %d", message.ReplyToMessage.ReplyToMessage.MessageID)
-	originalMessageID := message.ReplyToMessage.ReplyToMessage.MessageID
+	msgIDEnd := strings.Index(botMessageText[msgIDStart:], "]")
+	if msgIDEnd == -1 {
+		log.Printf("Could not find closing bracket for MSG_ID")
+		sendErrorMessage(bot, message, "Could not find the original message to tag.")
+		return
+	}
+	
+	msgIDStr := botMessageText[msgIDStart+9 : msgIDStart+msgIDEnd] // +9 to skip "[MSG_ID:"
+	originalMessageID, err := strconv.Atoi(msgIDStr)
+	if err != nil {
+		log.Printf("Could not parse message ID: %s", msgIDStr)
+		sendErrorMessage(bot, message, "Could not find the original message to tag.")
+		return
+	}
+	
+	log.Printf("Extracted original message ID: %d", originalMessageID)
 
 	// Get the database message ID
 	dbMessageID, err := getMessageByTelegramID(db, message.From.ID, int64(originalMessageID))

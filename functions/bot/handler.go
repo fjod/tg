@@ -32,7 +32,8 @@ func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql.DB) 
 		if message.ReplyToMessage != nil && message.ReplyToMessage.From.IsBot {
 			// Check if the reply is to a tag selection message by checking message content
 			if strings.Contains(message.ReplyToMessage.Text, "Choose a tag by typing") || 
-			   strings.Contains(message.ReplyToMessage.Text, "You don't have any tags yet") {
+			   strings.Contains(message.ReplyToMessage.Text, "You don't have any tags yet") ||
+			   strings.Contains(message.ReplyToMessage.Text, "[MSG_ID:") {
 				handleTagSelection(bot, message, db)
 				return
 			}
