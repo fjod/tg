@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"log"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -28,9 +29,13 @@ func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql.DB) 
 		}
 	} else {
 		// Check if this is a reply to our tag selection message
-		if message.ReplyToMessage != nil && message.ReplyToMessage.From.IsBot && message.ReplyToMessage.ReplyToMessage != nil {
-			handleTagSelection(bot, message, db)
-			return
+		if message.ReplyToMessage != nil && message.ReplyToMessage.From.IsBot {
+			// Check if the reply is to a tag selection message by checking message content
+			if strings.Contains(message.ReplyToMessage.Text, "Choose a tag by typing") || 
+			   strings.Contains(message.ReplyToMessage.Text, "You don't have any tags yet") {
+				handleTagSelection(bot, message, db)
+				return
+			}
 		}
 
 		// Save message to database for all non-command messages

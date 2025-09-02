@@ -94,6 +94,7 @@ func showTagSelection(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql.D
 
 	msg := tgbotapi.NewMessage(message.Chat.ID, responseText)
 	msg.ReplyToMessageID = message.MessageID
+	msg.ReplyMarkup = tgbotapi.ForceReply{ForceReply: true, Selective: true}
 
 	if _, err := bot.Send(msg); err != nil {
 		log.Printf("Error sending tag selection: %v", err)
