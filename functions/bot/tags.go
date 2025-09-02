@@ -111,12 +111,14 @@ func handleTagSelection(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql
 	
 	// Parse the original message ID from the tag selection message text
 	botMessageText := message.ReplyToMessage.Text
+	log.Printf("DEBUG: Full bot message text: '%s'", botMessageText)
 	msgIDStart := strings.Index(botMessageText, "[MSG_ID:")
 	if msgIDStart == -1 {
 		log.Printf("Could not find MSG_ID in bot message: %s", botMessageText)
 		sendErrorMessage(bot, message, "Could not find the original message to tag.")
 		return
 	}
+	log.Printf("DEBUG: msgIDStart found at position: %d", msgIDStart)
 	
 	msgIDEnd := strings.Index(botMessageText[msgIDStart:], "]")
 	if msgIDEnd == -1 {
@@ -124,9 +126,11 @@ func handleTagSelection(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql
 		sendErrorMessage(bot, message, "Could not find the original message to tag.")
 		return
 	}
+	log.Printf("DEBUG: msgIDEnd relative position: %d", msgIDEnd)
 	
-	msgIDStr := botMessageText[msgIDStart+9 : msgIDStart+msgIDEnd] // +9 to skip "[MSG_ID:"
-	log.Printf("DEBUG: msgIDStart=%d, msgIDEnd=%d, extracted string='%s'", msgIDStart, msgIDEnd, msgIDStr)
+	msgIDStr := botMessageText[msgIDStart+8 : msgIDStart+msgIDEnd] // +8 to skip "[MSG_ID:"
+	log.Printf("DEBUG: msgIDStart=%d, msgIDEnd=%d, slice=[%d:%d], extracted string='%s'", 
+		msgIDStart, msgIDEnd, msgIDStart+8, msgIDStart+msgIDEnd, msgIDStr)
 	
 	originalMessageID, err := strconv.Atoi(msgIDStr)
 	if err != nil {
