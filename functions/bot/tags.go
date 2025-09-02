@@ -102,7 +102,13 @@ func showTagSelection(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql.D
 }
 
 func handleTagSelection(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql.DB) {
-	// Extract original message ID from reply chain
+	// Extract original message ID from reply chain  
+	// The bot's tag selection message should have ReplyToMessage pointing to original user message
+	if message.ReplyToMessage.ReplyToMessage == nil {
+		log.Printf("No original message found in reply chain")
+		sendErrorMessage(bot, message, "Could not find the original message to tag.")
+		return
+	}
 	originalMessageID := message.ReplyToMessage.ReplyToMessage.MessageID
 
 	// Get the database message ID
