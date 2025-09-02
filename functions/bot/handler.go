@@ -27,17 +27,20 @@ func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql.DB) 
 			responseText = "Unknown command. Use /help to see available commands."
 		}
 	} else {
+		// Check if this is a reply to our tag selection message
+		if message.ReplyToMessage != nil && message.ReplyToMessage.From.IsBot && message.ReplyToMessage.ReplyToMessage != nil {
+			handleTagSelection(bot, message, db)
+			return
+		}
+
 		// Save message to database for all non-command messages
 		if err := saveMessage(db, message); err != nil {
 			log.Printf("Error saving message: %v", err)
 			responseText = "Sorry, I couldn't save your message. Please try again."
 		} else {
-			if message.ForwardFrom != nil {
-				responseText = "Thanks for forwarding this message! I've saved it and will organize it for you."
-				log.Printf("Forwarded message from %s saved successfully", message.ForwardFrom.FirstName)
-			} else {
-				responseText = "Message saved! I've organized it for you."
-			}
+			// Show tag selection after saving message
+			showTagSelection(bot, message, db)
+			return
 		}
 	}
 
@@ -48,3 +51,4 @@ func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql.DB) 
 		log.Printf("Error sending message: %v", err)
 	}
 }
+
