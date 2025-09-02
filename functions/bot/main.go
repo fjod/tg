@@ -49,6 +49,11 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	if update.Message != nil {
 		handleMessage(bot, update.Message, db)
 	}
+	
+	// Handle callback queries (button clicks)
+	if update.CallbackQuery != nil {
+		handleCallbackQuery(bot, update.CallbackQuery, db)
+	}
 
 	return events.APIGatewayProxyResponse{StatusCode: 200}, nil
 }

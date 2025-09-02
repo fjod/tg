@@ -81,23 +81,82 @@ func showTagSelection(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql.D
 		return
 	}
 
-	var responseText string
-	if len(tags) == 0 {
-		responseText = fmt.Sprintf("You don't have any tags yet. Reply with a tag name to create your first tag:\n\n[MSG_ID:%d]", message.MessageID)
+	// Use buttons for ≤20 tags, text for >20 tags
+	if len(tags) <= 20 {
+		showTagSelectionWithButtons(bot, message, tags)
 	} else {
-		responseText = fmt.Sprintf("Choose a tag by typing its name or create a new one:\n\n")
-		for i, tag := range tags {
-			responseText += fmt.Sprintf("%d. %s\n", i+1, tag.Name)
-		}
-		responseText += fmt.Sprintf("\nOr type a new tag name to create it.\n\n[MSG_ID:%d]", message.MessageID)
+		showTagSelectionWithText(bot, message, tags)
 	}
+}
+
+func showTagSelectionWithButtons(bot *tgbotapi.BotAPI, message *tgbotapi.Message, tags []Tag) {
+	var responseText string
+	var keyboard tgbotapi.InlineKeyboardMarkup
+
+	if len(tags) == 0 {
+		responseText = "You don't have any tags yet. Click the button below to create your first tag:"
+		// Single "Create New Tag" button
+		keyboard = tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("➕ Create New Tag", fmt.Sprintf("new_tag:%d", message.MessageID)),
+			),
+		)
+	} else {
+		responseText = "Choose a tag or create a new one:"
+		
+		// Create button rows (2 buttons per row for better layout)
+		var rows [][]tgbotapi.InlineKeyboardButton
+		for i := 0; i < len(tags); i += 2 {
+			var row []tgbotapi.InlineKeyboardButton
+			
+			// First button in row
+			row = append(row, tgbotapi.NewInlineKeyboardButtonData(
+				tags[i].Name,
+				fmt.Sprintf("tag:%d:%d", tags[i].ID, message.MessageID),
+			))
+			
+			// Second button in row (if exists)
+			if i+1 < len(tags) {
+				row = append(row, tgbotapi.NewInlineKeyboardButtonData(
+					tags[i+1].Name,
+					fmt.Sprintf("tag:%d:%d", tags[i+1].ID, message.MessageID),
+				))
+			}
+			
+			rows = append(rows, row)
+		}
+		
+		// Add "Create New Tag" button at the end
+		rows = append(rows, []tgbotapi.InlineKeyboardButton{
+			tgbotapi.NewInlineKeyboardButtonData("➕ Create New Tag", fmt.Sprintf("new_tag:%d", message.MessageID)),
+		})
+		
+		keyboard = tgbotapi.InlineKeyboardMarkup{InlineKeyboard: rows}
+	}
+
+	msg := tgbotapi.NewMessage(message.Chat.ID, responseText)
+	msg.ReplyToMessageID = message.MessageID
+	msg.ReplyMarkup = keyboard
+
+	if _, err := bot.Send(msg); err != nil {
+		log.Printf("Error sending tag selection with buttons: %v", err)
+	}
+}
+
+func showTagSelectionWithText(bot *tgbotapi.BotAPI, message *tgbotapi.Message, tags []Tag) {
+	responseText := fmt.Sprintf("You have many tags (%d). Choose by typing its name or number, or create a new one:\n\n", len(tags))
+	
+	for i, tag := range tags {
+		responseText += fmt.Sprintf("%d. %s\n", i+1, tag.Name)
+	}
+	responseText += fmt.Sprintf("\nType a tag name/number or create a new tag.\n\n[MSG_ID:%d]", message.MessageID)
 
 	msg := tgbotapi.NewMessage(message.Chat.ID, responseText)
 	msg.ReplyToMessageID = message.MessageID
 	msg.ReplyMarkup = tgbotapi.ForceReply{ForceReply: true, Selective: true}
 
 	if _, err := bot.Send(msg); err != nil {
-		log.Printf("Error sending tag selection: %v", err)
+		log.Printf("Error sending tag selection with text: %v", err)
 	}
 }
 
@@ -111,14 +170,12 @@ func handleTagSelection(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql
 	
 	// Parse the original message ID from the tag selection message text
 	botMessageText := message.ReplyToMessage.Text
-	log.Printf("DEBUG: Full bot message text: '%s'", botMessageText)
 	msgIDStart := strings.Index(botMessageText, "[MSG_ID:")
 	if msgIDStart == -1 {
 		log.Printf("Could not find MSG_ID in bot message: %s", botMessageText)
 		sendErrorMessage(bot, message, "Could not find the original message to tag.")
 		return
 	}
-	log.Printf("DEBUG: msgIDStart found at position: %d", msgIDStart)
 	
 	msgIDEnd := strings.Index(botMessageText[msgIDStart:], "]")
 	if msgIDEnd == -1 {
@@ -126,11 +183,8 @@ func handleTagSelection(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql
 		sendErrorMessage(bot, message, "Could not find the original message to tag.")
 		return
 	}
-	log.Printf("DEBUG: msgIDEnd relative position: %d", msgIDEnd)
 	
 	msgIDStr := botMessageText[msgIDStart+8 : msgIDStart+msgIDEnd] // +8 to skip "[MSG_ID:"
-	log.Printf("DEBUG: msgIDStart=%d, msgIDEnd=%d, slice=[%d:%d], extracted string='%s'", 
-		msgIDStart, msgIDEnd, msgIDStart+8, msgIDStart+msgIDEnd, msgIDStr)
 	
 	originalMessageID, err := strconv.Atoi(msgIDStr)
 	if err != nil {
@@ -191,8 +245,109 @@ func handleTagSelection(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql
 	}
 }
 
+func handleTagCallback(bot *tgbotapi.BotAPI, callbackQuery *tgbotapi.CallbackQuery, db *sql.DB) {
+	// Parse callback data: "tag:tagID:messageID"
+	parts := strings.Split(callbackQuery.Data, ":")
+	if len(parts) != 3 {
+		log.Printf("Invalid tag callback data: %s", callbackQuery.Data)
+		return
+	}
+	
+	tagID, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil {
+		log.Printf("Invalid tag ID in callback data: %s", parts[1])
+		return
+	}
+	
+	originalMessageID, err := strconv.Atoi(parts[2])
+	if err != nil {
+		log.Printf("Invalid message ID in callback data: %s", parts[2])
+		return
+	}
+	
+	log.Printf("Processing tag callback - tagID: %d, originalMsgID: %d", tagID, originalMessageID)
+	
+	// Get the database message ID
+	dbMessageID, err := getMessageByTelegramID(db, callbackQuery.From.ID, int64(originalMessageID))
+	if err != nil {
+		log.Printf("Error finding original message: %v", err)
+		sendErrorMessageToCallback(bot, callbackQuery, "Could not find the original message to tag.")
+		return
+	}
+	
+	// Get tag name for confirmation message
+	var tagName string
+	query := `SELECT name FROM tags WHERE id = $1 AND user_id = $2`
+	err = db.QueryRow(query, tagID, callbackQuery.From.ID).Scan(&tagName)
+	if err != nil {
+		log.Printf("Error getting tag name: %v", err)
+		sendErrorMessageToCallback(bot, callbackQuery, "Could not find the tag.")
+		return
+	}
+	
+	// Tag the message
+	if err := tagMessage(db, dbMessageID, tagID); err != nil {
+		log.Printf("Error tagging message: %v", err)
+		sendErrorMessageToCallback(bot, callbackQuery, "Could not tag the message.")
+		return
+	}
+	
+	// Send confirmation
+	responseText := fmt.Sprintf("✅ Message tagged with '%s'", tagName)
+	msg := tgbotapi.NewMessage(callbackQuery.Message.Chat.ID, responseText)
+	
+	if _, err := bot.Send(msg); err != nil {
+		log.Printf("Error sending confirmation: %v", err)
+	}
+	
+	// Edit the original message to remove buttons
+	editMsg := tgbotapi.NewEditMessageText(callbackQuery.Message.Chat.ID, callbackQuery.Message.MessageID, 
+		fmt.Sprintf("✅ Tagged with '%s'", tagName))
+	if _, err := bot.Send(editMsg); err != nil {
+		log.Printf("Error editing message: %v", err)
+	}
+}
+
+func handleNewTagCallback(bot *tgbotapi.BotAPI, callbackQuery *tgbotapi.CallbackQuery, db *sql.DB) {
+	// Parse callback data: "new_tag:messageID"
+	parts := strings.Split(callbackQuery.Data, ":")
+	if len(parts) != 2 {
+		log.Printf("Invalid new_tag callback data: %s", callbackQuery.Data)
+		return
+	}
+	
+	originalMessageID, err := strconv.Atoi(parts[1])
+	if err != nil {
+		log.Printf("Invalid message ID in new_tag callback data: %s", parts[1])
+		return
+	}
+	
+	// Send a message asking for the new tag name
+	responseText := fmt.Sprintf("Please reply with the name for your new tag:\n\n[MSG_ID:%d]", originalMessageID)
+	msg := tgbotapi.NewMessage(callbackQuery.Message.Chat.ID, responseText)
+	msg.ReplyMarkup = tgbotapi.ForceReply{ForceReply: true, Selective: true}
+	
+	if _, err := bot.Send(msg); err != nil {
+		log.Printf("Error sending new tag prompt: %v", err)
+	}
+	
+	// Edit the original message to show we're waiting for input
+	editMsg := tgbotapi.NewEditMessageText(callbackQuery.Message.Chat.ID, callbackQuery.Message.MessageID, 
+		"Please reply with your new tag name...")
+	if _, err := bot.Send(editMsg); err != nil {
+		log.Printf("Error editing message: %v", err)
+	}
+}
+
 func sendErrorMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message, text string) {
 	msg := tgbotapi.NewMessage(message.Chat.ID, text)
+	if _, err := bot.Send(msg); err != nil {
+		log.Printf("Error sending error message: %v", err)
+	}
+}
+
+func sendErrorMessageToCallback(bot *tgbotapi.BotAPI, callbackQuery *tgbotapi.CallbackQuery, text string) {
+	msg := tgbotapi.NewMessage(callbackQuery.Message.Chat.ID, text)
 	if _, err := bot.Send(msg); err != nil {
 		log.Printf("Error sending error message: %v", err)
 	}

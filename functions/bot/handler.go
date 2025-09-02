@@ -58,3 +58,23 @@ func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql.DB) 
 	}
 }
 
+func handleCallbackQuery(bot *tgbotapi.BotAPI, callbackQuery *tgbotapi.CallbackQuery, db *sql.DB) {
+	// Answer the callback query to stop the loading animation
+	callback := tgbotapi.NewCallback(callbackQuery.ID, "")
+	if _, err := bot.Request(callback); err != nil {
+		log.Printf("Error answering callback query: %v", err)
+	}
+
+	// Parse callback data format: "tag:tagID:messageID" or "new_tag:messageID"
+	data := callbackQuery.Data
+	log.Printf("Received callback data: %s", data)
+
+	if strings.HasPrefix(data, "tag:") {
+		handleTagCallback(bot, callbackQuery, db)
+	} else if strings.HasPrefix(data, "new_tag:") {
+		handleNewTagCallback(bot, callbackQuery, db)
+	} else {
+		log.Printf("Unknown callback data format: %s", data)
+	}
+}
+
