@@ -126,6 +126,8 @@ func handleTagSelection(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql
 	}
 	
 	msgIDStr := botMessageText[msgIDStart+9 : msgIDStart+msgIDEnd] // +9 to skip "[MSG_ID:"
+	log.Printf("DEBUG: msgIDStart=%d, msgIDEnd=%d, extracted string='%s'", msgIDStart, msgIDEnd, msgIDStr)
+	
 	originalMessageID, err := strconv.Atoi(msgIDStr)
 	if err != nil {
 		log.Printf("Could not parse message ID: %s", msgIDStr)
