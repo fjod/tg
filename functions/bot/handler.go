@@ -23,7 +23,10 @@ func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql.DB) 
 		case "start":
 			responseText = "Hello! I'm your Telegram Content Organizer bot. Send me any message or forward content to me!"
 		case "help":
-			responseText = "Available commands:\n/start - Get started\n/help - Show this help message\n\nYou can also send me any message or forward content to me."
+			responseText = "Available commands:\n/start - Get started\n/help - Show this help message\n/miniapp - Open mini-app to view your tags\n\nYou can also send me any message or forward content to me."
+		case "miniapp":
+			sendMiniAppButton(bot, message)
+			return
 		default:
 			responseText = "Unknown command. Use /help to see available commands."
 		}
@@ -31,9 +34,9 @@ func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql.DB) 
 		// Check if this is a reply to our tag selection message
 		if message.ReplyToMessage != nil && message.ReplyToMessage.From.IsBot {
 			// Check if the reply is to a tag selection message by checking message content
-			if strings.Contains(message.ReplyToMessage.Text, "Choose a tag by typing") || 
-			   strings.Contains(message.ReplyToMessage.Text, "You don't have any tags yet") ||
-			   strings.Contains(message.ReplyToMessage.Text, "[MSG_ID:") {
+			if strings.Contains(message.ReplyToMessage.Text, "Choose a tag by typing") ||
+				strings.Contains(message.ReplyToMessage.Text, "You don't have any tags yet") ||
+				strings.Contains(message.ReplyToMessage.Text, "[MSG_ID:") {
 				handleTagSelection(bot, message, db)
 				return
 			}
@@ -78,3 +81,23 @@ func handleCallbackQuery(bot *tgbotapi.BotAPI, callbackQuery *tgbotapi.CallbackQ
 	}
 }
 
+func sendMiniAppButton(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
+	// Create a keyboard with Web App button
+	webAppURL := "https://functions.yandexcloud.net/d4ek5oug8uak4lb9edsl"
+
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.InlineKeyboardButton{
+				Text:   "🏷️ View My Tags",
+				WebApp: &tgbotapi.WebApp{URL: webAppURL},
+			},
+		),
+	)
+
+	msg := tgbotapi.NewMessage(message.Chat.ID, "Open the mini-app to view and manage your tags:")
+	msg.ReplyMarkup = keyboard
+
+	if _, err := bot.Send(msg); err != nil {
+		log.Printf("Error sending mini-app button: %v", err)
+	}
+}
