@@ -104,7 +104,7 @@ func extractFileMetadata(message *tgbotapi.Message, messageType MessageType) Fil
 	switch messageType {
 	case MessageTypePhoto:
 		if len(message.Photo) > 0 {
-			photo := message.Photo[0] // Get smallest photo (thumbnail)
+			photo := message.Photo[0] // Get the smallest photo (thumbnail)
 			metadata.FileID = sql.NullString{String: photo.FileID, Valid: true}
 			if photo.FileSize != 0 {
 				metadata.FileSize = sql.NullInt64{Int64: int64(photo.FileSize), Valid: true}
