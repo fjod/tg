@@ -32,7 +32,7 @@ type Tag struct {
 func initDB() (*sql.DB, error) {
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		return nil, fmt.Errorf("DATABASE_URL environment variable not set")
+		return nil, fmt.Errorf("DATABASE_URL  environment variable not set")
 	}
 
 	db, err := sql.Open("postgres", dbURL)

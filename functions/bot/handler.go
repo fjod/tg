@@ -13,7 +13,7 @@ func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message, db *sql.DB) 
 
 	// Save user to database
 	if err := saveUser(db, message.From); err != nil {
-		log.Printf("Error saving user : %v", err)
+		log.Printf("Error saving user: %v", err)
 	}
 
 	var responseText string

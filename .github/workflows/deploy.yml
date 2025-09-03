@@ -65,7 +65,7 @@ jobs:
         zip -r bot.zip *.go go.mod go.sum
         yc serverless function version create \
           --function-id=d4eqrudr11gga4ooul1b \
-          --runtime=golang121 \
+          --runtime=golang123 \
           --entrypoint=main.Handler \
           --memory=256m \
           --execution-timeout=15s \
@@ -103,7 +103,7 @@ jobs:
         zip -r miniapp-api.zip *.go go.mod go.sum
         yc serverless function version create \
           --function-id=d4ek5oug8uak4lb9edsl \
-          --runtime=golang121 \
+          --runtime=golang123 \
           --entrypoint=main.Handler \
           --memory=256m \
           --execution-timeout=15s \
