@@ -44,7 +44,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		log.Printf("Failed to convert Lambda request : %v", err)
 		return events.APIGatewayProxyResponse{
 			StatusCode: 400,
-			Body:       `{"success": false, "error": "Invalid request format"}`,
+			Body:       `{"success": false, "error": " Invalid request format"}`,
 			Headers: map[string]string{
 				"Content-Type":                "application/json",
 				"Access-Control-Allow-Origin": "*",

@@ -69,7 +69,7 @@ jobs:
           --entrypoint=main.Handler \
           --memory=256m \
           --execution-timeout=15s \
-          --log-level=WARN \
+          --min-log-level=warn \
           --source-path=bot.zip \
           --service-account-id=aje11ekf8scj1bonpe5f \
           --environment TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}" \
@@ -107,7 +107,7 @@ jobs:
           --entrypoint=main.Handler \
           --memory=256m \
           --execution-timeout=15s \
-          --log-level=WARN \
+          --min-log-level=warn \
           --source-path=miniapp-api.zip \
           --service-account-id=aje11ekf8scj1bonpe5f \
           --environment TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}" \
