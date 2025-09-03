@@ -82,15 +82,12 @@ func handleCallbackQuery(bot *tgbotapi.BotAPI, callbackQuery *tgbotapi.CallbackQ
 }
 
 func sendMiniAppButton(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
-	// Create a keyboard with Web App button
+	// Create a keyboard with URL button (opens mini-app)
 	webAppURL := "https://functions.yandexcloud.net/d4ek5oug8uak4lb9edsl"
 
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.InlineKeyboardButton{
-				Text:   "🏷️ View My Tags",
-				WebApp: &tgbotapi.WebApp{URL: webAppURL},
-			},
+			tgbotapi.NewInlineKeyboardButtonURL("🏷️ View My Tags", webAppURL),
 		),
 	)
 
