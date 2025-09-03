@@ -67,8 +67,8 @@ jobs:
           --function-id=d4eqrudr11gga4ooul1b \
           --runtime=golang121 \
           --entrypoint=main.Handler \
-          --memory=128m \
-          --execution-timeout=5s \
+          --memory=256m \
+          --execution-timeout=15s \
           --source-path=bot.zip \
           --service-account-id=aje11ekf8scj1bonpe5f \
           --environment TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}" \

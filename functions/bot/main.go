@@ -15,15 +15,20 @@ import (
 var db *sql.DB
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	log.Printf("Handler started - RequestID from context")
+
 	// Initialize database connection if not already done
 	if db == nil {
+		log.Printf("Initializing database connection...")
 		var err error
 		db, err = initDB()
 		if err != nil {
 			log.Printf("Failed to connect to database: %v", err)
 			return events.APIGatewayProxyResponse{StatusCode: 500}, nil
 		}
+		log.Printf("Database connection established")
 	}
+
 	// Get bot token from environment
 	botToken := os.Getenv("TELEGRAM_BOT_TOKEN")
 	if botToken == "" {
@@ -32,6 +37,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	}
 
 	// Create bot instance
+	log.Printf("Creating bot instance...")
 	bot, err := tgbotapi.NewBotAPI(botToken)
 	if err != nil {
 		log.Printf("Failed to create bot: %v", err)
@@ -39,6 +45,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	}
 
 	// Parse incoming webhook
+	log.Printf("Parsing webhook data...")
 	var update tgbotapi.Update
 	if err := json.Unmarshal([]byte(request.Body), &update); err != nil {
 		log.Printf("Error parsing update: %v", err)
@@ -47,14 +54,17 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 
 	// Handle the message
 	if update.Message != nil {
+		log.Printf("Processing message from user %d", update.Message.From.ID)
 		handleMessage(bot, update.Message, db)
 	}
-	
+
 	// Handle callback queries (button clicks)
 	if update.CallbackQuery != nil {
+		log.Printf("Processing callback query from user %d", update.CallbackQuery.From.ID)
 		handleCallbackQuery(bot, update.CallbackQuery, db)
 	}
 
+	log.Printf("Handler completed successfully")
 	return events.APIGatewayProxyResponse{StatusCode: 200}, nil
 }
 
