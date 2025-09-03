@@ -1,204 +1,295 @@
-﻿# Go Project Test Writing Metaprompt
+﻿# Telegram Mini-App Implementation Metaprompt
 
-You are an AI agent tasked with analyzing a Go project and writing comprehensive tests for the `database.go` file. Follow this systematic approach:
+You are tasked with implementing a basic Telegram Mini-App for the "Telegram Content Organizer" project. This mini-app should display a list of user's tags as the initial MVP feature.
 
-## Phase 1: Project Documentation Analysis
+## Project Context
 
-### 1.1 Find and Analyze Info/Markdown Files
-- Locate all `.md`, `.txt`, and documentation files in the project root and `/docs` directory
-- Read and summarize:
-    - `README.md` - project overview, setup instructions, key concepts
-    - `PROJECT_PROGRESS.md` - coding standards and testing guidelines
-    - 'telegram_organizer_schema.md' - database schema and relevant SQL queries
-    - Any architecture or design documents
-    - API documentation or specification files
-- Extract key information about:
-    - Project purpose and domain
-    - Coding conventions and style guidelines
-    - Testing frameworks and patterns used
-    - Dependencies and external integrations
-    - Error handling patterns
+**Architecture Overview:**
+- Backend: Go with PostgreSQL database (already implemented)
+- Bot: Telegram bot handles message processing and tagging (already implemented)
+- Mini-App: React/Vue.js frontend hosted on Yandex Cloud Object Storage (to be implemented)
+- API: Go-based API endpoints via Yandex Cloud Functions (to be implemented)
 
-### 1.2 Understand Project Structure
-- Map out the directory structure
-- Identify main packages and their responsibilities
-- Note any special build tags, configuration files, or environment setup
+**Current Status:**
+- ✅ Telegram bot is fully functional with tag management
+- ✅ Database schema is implemented with full test coverage
+- ❌ Mini-app frontend and API endpoints need to be created
 
-## Phase 2: Test Pattern Analysis
+## Technical Requirements
 
-### 2.1 Examine Existing Test Files
-Analyze at least 3-5 existing `*_test.go` files in the project, focusing on:
+### 1. Database Schema (Already Implemented)
+```sql
+-- Users table
+CREATE TABLE users (
+    id BIGSERIAL PRIMARY KEY,
+    telegram_id BIGINT UNIQUE NOT NULL,
+    username VARCHAR(255),
+    first_name VARCHAR(255),
+    last_name VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE
+);
 
-**Testing Framework and Patterns:**
-- Which testing framework is used (standard `testing`, testify, ginkgo, etc.)
-- Test file naming conventions
-- Test function naming patterns
-- Package declaration style (`package foo` vs `package foo_test`)
+-- Tags table with user relationship
+CREATE TABLE tags (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES users(telegram_id),
+    name VARCHAR(100) NOT NULL,
+    color VARCHAR(7), -- hex color code
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, name)
+);
 
-**Test Structure and Organization:**
-- How test cases are organized (table-driven tests, subtests, etc.)
-- Setup and teardown patterns
-- Mock/stub usage and patterns
-- Test data organization (fixtures, builders, etc.)
-
-**Assertion and Error Handling:**
-- How assertions are written
-- Error testing patterns
-- Expected vs actual value ordering
-- Custom assertion helpers or utilities
-
-**Coverage Patterns:**
-- What types of scenarios are typically tested
-- How edge cases are handled
-- Integration vs unit test boundaries
-- Performance/benchmark test patterns
-
-### 2.2 Identify Common Utilities and Helpers
-- Test helper functions
-- Mock generators or factories
-- Common test data builders
-- Custom matchers or assertion helpers
-
-## Phase 3: Target File Analysis
-
-### 3.1 Analyze `database.go` Structure
-Thoroughly examine the `database.go` file:
-
-**Code Organization:**
-- Package declaration and imports
-- Exported vs unexported functions, types, and variables
-- Constants and global variables
-- Struct definitions and their fields
-
-**Function Inventory:**
-- List all functions with their signatures
-- Identify pure functions vs functions with side effects
-- Note functions that interact with external systems (files, network, databases)
-- Identify error return patterns
-
-**Dependencies and Interactions:**
-- External package dependencies
-- Internal package dependencies
-- File system interactions
-- Network calls or external API usage
-- Database operations
-
-**Business Logic Patterns:**
-- Input validation logic
-- Data transformation patterns
-- Error handling and recovery
-- Concurrency usage (goroutines, channels)
-
-### 3.2 Identify Test Scenarios
-For each function and method, identify:
-
-**Happy Path Testing:**
-- Normal input cases
-- Boundary value cases
-- Different input combinations
-
-**Error Path Testing:**
-- Invalid input handling
-- External dependency failures
-- Resource exhaustion scenarios
-- Concurrent access issues
-
-**Edge Cases:**
-- Empty inputs, nil values
-- Very large or very small inputs
-- Malformed data handling
-- State-dependent behavior
-
-## Phase 4: Test Implementation
-
-### 4.1 Follow Project Conventions
-Based on your analysis, ensure your tests:
-- Use the same testing framework and patterns as existing tests
-- Follow the same naming conventions
-- Use similar assertion patterns
-- Match the project's error handling style
-- Follow the same package organization (same package vs separate test package)
-
-### 4.2 Test File Structure
-Create `database_test.go` with:
-
-```go
-// Match existing test file headers and build tags
-package [package_name] // or package [package_name]_test
-
-import (
-    // Include standard testing imports used in other test files
-    // Include any testing utilities or assertion libraries used
-    // Include mocking frameworks if used in other tests
-)
-
-// Include any test setup/teardown functions if common in the project
-// Include any test helper functions needed
-// Include any test data/fixtures following project patterns
+-- Message tags relationship (for future features)
+CREATE TABLE message_tags (
+    id BIGSERIAL PRIMARY KEY,
+    message_id BIGINT REFERENCES messages(id) ON DELETE CASCADE,
+    tag_id BIGINT REFERENCES tags(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(message_id, tag_id)
+);
 ```
 
-### 4.3 Comprehensive Test Coverage
-Write tests that cover:
+### 2. Go Structs (Reference Implementation)
+```go
+type User struct {
+    ID          int64     `json:"id" db:"id"`
+    TelegramID  int64     `json:"telegram_id" db:"telegram_id"`
+    Username    *string   `json:"username" db:"username"`
+    FirstName   *string   `json:"first_name" db:"first_name"`
+    LastName    *string   `json:"last_name" db:"last_name"`
+    CreatedAt   time.Time `json:"created_at" db:"created_at"`
+    UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
+    IsActive    bool      `json:"is_active" db:"is_active"`
+}
 
-**Unit Tests:**
-- Each exported function with multiple test cases
-- Each exported method on structs/interfaces
-- Important unexported functions if they contain complex logic
+type Tag struct {
+    ID        int64     `json:"id" db:"id"`
+    UserID    int64     `json:"user_id" db:"user_id"`
+    Name      string    `json:"name" db:"name"`
+    Color     *string   `json:"color" db:"color"`
+    CreatedAt time.Time `json:"created_at" db:"created_at"`
+}
+```
 
-**Integration Tests:**
-- Functions that interact with external systems
-- End-to-end workflows involving multiple functions
-- Error propagation through the system
+### 3. Database Connection
+```
+Connection String: take it from env variable DATABASE_URL  (check database.go file if needed).
+```
 
-**Table-Driven Tests:**
-- Use table-driven tests for functions with multiple input/output combinations
-- Follow the project's table test structure and naming
+## Implementation Requirements
 
-**Benchmark Tests:**
-- Add benchmark tests for performance-critical functions
-- Follow existing benchmark patterns in the project
+### Phase 1: Backend API (Go Cloud Functions)
 
-### 4.4 Test Quality Guidelines
-Ensure your tests:
-- Have clear, descriptive test names that explain what is being tested
-- Include both positive and negative test cases
-- Test edge cases and boundary conditions
-- Are deterministic and can run in any order
-- Clean up resources appropriately
-- Use appropriate mocking for external dependencies
-- Include helpful error messages in assertions
-- Follow the AAA pattern (Arrange, Act, Assert) or similar
+**File Structure:**
+```
+functions/
+├── miniapp-api/
+│   ├── main.go           # Lambda entry point
+│   ├── handlers.go       # HTTP request handlers
+│   ├── database.go       # DB operations (reuse from bot)
+│   ├── auth.go           # Telegram Web App authentication
+│   └── go.mod            # Dependencies
+```
 
-## Phase 5: Documentation and Finalization
+**Required API Endpoints:**
 
-### 5.1 Test Documentation
-- Add comments explaining complex test scenarios
-- Document any test data setup or special requirements
-- Include examples of how to run the tests
+1. **GET /api/user/tags**
+    - Purpose: Fetch all tags for authenticated user
+    - Authentication: Telegram Web App `initData` validation
+    - Response: JSON array of user's tags with message counts
+    - SQL Query:
+   ```sql
+   SELECT t.*, COUNT(mt.message_id) as message_count
+   FROM tags t
+   LEFT JOIN message_tags mt ON t.id = mt.tag_id
+   WHERE t.user_id = $1
+   GROUP BY t.id
+   ORDER BY message_count DESC;
+   ```
 
-### 5.2 Integration Verification
-- Ensure tests follow the project's CI/CD patterns
-- Verify tests work with existing build and test scripts
-- Check that new tests integrate well with coverage tools
+**Authentication Method:**
+- Validate Telegram Web App `initData` parameter
+- Extract `user.id` from validated data
+- Use as `user_id` for database queries
 
-## Output Requirements
+**Key Implementation Notes:**
+- Use `github.com/gin-gonic/gin` for HTTP routing (consistent with project)
+- Implement proper CORS headers for mini-app domain
+- Use connection pooling for PostgreSQL
+- Return proper HTTP status codes and error messages
+- Implement request logging for debugging
 
-Provide:
-1. **Analysis Summary**: Brief summary of project patterns and conventions discovered
-2. **Complete Test File**: Full `database_test.go` implementation
-3. **Test Coverage Report**: List of what is tested and any notable gaps
-4. **Integration Notes**: Any special considerations for running or maintaining these tests
+### Phase 2: Frontend Mini-App (React/Vue.js)
 
-## Quality Checklist
+**Technology Choice:** React (more suitable for Telegram Mini-Apps)
 
-Before finalizing, verify:
-- [ ] Tests follow project conventions exactly
-- [ ] All exported functions are tested
-- [ ] Error cases are comprehensively covered
-- [ ] Tests are readable and maintainable
-- [ ] No hardcoded values that should be configurable
-- [ ] Proper cleanup of resources
-- [ ] Tests are deterministic
-- [ ] Integration with existing test infrastructure
-- [ ] Appropriate use of mocks and stubs
-- [ ] Performance considerations addressed where relevant
+**File Structure:**
+```
+miniapp-frontend/
+├── public/
+│   ├── index.html
+│   └── manifest.json
+├── src/
+│   ├── components/
+│   │   ├── TagList.jsx    # Main tag list component
+│   │   ├── TagItem.jsx    # Individual tag component
+│   │   └── Header.jsx     # App header
+│   ├── services/
+│   │   └── api.js         # API communication
+│   ├── utils/
+│   │   └── telegram.js    # Telegram Web App utilities
+│   ├── App.jsx            # Main app component
+│   ├── index.js           # Entry point
+│   └── styles.css         # Styling
+├── package.json
+└── README.md
+```
+
+**Core Components:**
+
+1. **App.jsx** - Main application component
+    - Initialize Telegram Web App SDK
+    - Handle authentication state
+    - Render TagList component
+
+2. **TagList.jsx** - Display user's tags
+    - Fetch tags from API on component mount
+    - Show loading state during API calls
+    - Display empty state if no tags exist
+    - Show tag count for each tag
+
+3. **TagItem.jsx** - Individual tag component
+    - Display tag name with optional color indicator
+    - Show message count
+    - Responsive design for mobile
+
+**Required Features:**
+- Responsive design (mobile-first)
+- Loading states and error handling
+- Empty state when user has no tags
+- Tag colors display (if set)
+- Message count for each tag
+- Telegram Web App theming integration
+
+### Phase 3: Deployment Configuration
+
+**Yandex Cloud Object Storage (Frontend):**
+- Build optimized production bundle
+- Upload to Object Storage bucket
+- Configure as static website
+- Set up HTTPS domain
+
+**Yandex Cloud Functions (Backend API):**
+- Package Go function with dependencies
+- Configure environment variables
+- Set up API Gateway routing
+- Enable CORS for mini-app domain
+
+## Specific Implementation Tasks
+
+### Task 1: Telegram Web App Authentication
+Implement secure authentication using Telegram's `initData` parameter:
+
+```go
+func validateTelegramWebApp(initData string, botToken string) (int64, error) {
+    // Parse initData
+    // Validate hash using bot token
+    // Extract user information
+    // Return user_id for database queries
+}
+```
+
+### Task 2: Tags API Endpoint
+Create endpoint that returns user's tags with message counts:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "work",
+      "color": "#FF5733",
+      "message_count": 15,
+      "created_at": "2025-01-15T10:30:00Z"
+    },
+    {
+      "id": 2,
+      "name": "personal",
+      "color": null,
+      "message_count": 8,
+      "created_at": "2025-01-14T15:20:00Z"
+    }
+  ]
+}
+```
+
+### Task 3: React Mini-App UI
+Create clean, mobile-optimized interface:
+
+**Design Requirements:**
+- Follow Telegram Mini-App design guidelines
+- Use Telegram's color scheme and theming
+- Responsive grid layout for tags
+- Loading spinners and error states
+- Empty state with helpful message
+
+**Example Tag Item Design:**
+```
+┌─────────────────────────────┐
+│ ● work                  (15)│
+│   Created: Jan 15, 2025     │
+└─────────────────────────────┘
+```
+
+## Success Criteria
+
+### MVP Completion Checklist:
+- [ ] Backend API endpoint `/api/user/tags` working
+- [ ] Telegram Web App authentication implemented
+- [ ] Frontend displays user's tags with counts
+- [ ] Responsive mobile design
+- [ ] Error handling and loading states
+- [ ] Deployed to Yandex Cloud (both frontend and backend)
+- [ ] Mini-app accessible via Telegram bot command
+
+### Testing Requirements:
+- [ ] API endpoint returns correct data for test users
+- [ ] Frontend handles empty state (no tags)
+- [ ] Authentication works with real Telegram users
+- [ ] Mobile responsiveness tested on different screen sizes
+- [ ] Error scenarios handled gracefully
+
+## Future Expansion Notes
+
+This basic implementation sets foundation for:
+- Message browsing by tag
+- Tag editing and deletion
+- Search functionality
+- Export features
+- Advanced tag management
+
+Keep code modular and well-documented for easy expansion to these features.
+
+## Technical Constraints
+
+- **Budget**: Stay within Yandex Cloud free tier initially
+- **Performance**: Optimize for mobile networks
+- **Security**: Proper authentication and input validation
+- **Scalability**: Design for 1K+ users from start
+- **Maintainability**: Clean, testable code with documentation
+
+---
+
+**Expected Deliverables:**
+1. Working Go API backend deployable to Yandex Cloud Functions
+2. React frontend deployable to Yandex Cloud Object Storage
+3. Documentation for deployment and configuration
+4. Basic testing suite for API endpoints
+5. Mini-app accessible through Telegram bot
+
+**Estimated Development Time:** 2-3 days for experienced developer
+
+**Priority:** This is the foundational feature that enables all future mini-app functionality.
