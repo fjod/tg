@@ -41,7 +41,7 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	// Convert Lambda request to HTTP request
 	req, err := convertLambdaRequest(request)
 	if err != nil {
-		log.Printf("Failed to convert Lambda request: %v", err)
+		log.Printf("Failed to convert Lambda request : %v", err)
 		return events.APIGatewayProxyResponse{
 			StatusCode: 400,
 			Body:       `{"success": false, "error": "Invalid request format"}`,
