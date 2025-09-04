@@ -82,16 +82,26 @@ func handleCallbackQuery(bot *tgbotapi.BotAPI, callbackQuery *tgbotapi.CallbackQ
 }
 
 func sendMiniAppButton(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
-	// Create a keyboard with URL button (opens mini-app)
-	webAppURL := "https://functions.yandexcloud.net/d4ek5oug8uak4lb9edsl"
+	// Since the current Go library doesn't support WebApp buttons yet,
+	// users should use the Menu Button (configured via BotFather /setmenubutton)
+	// This message explains how to access the mini-app
 
+	responseText := `🏷️ **View Your Tags**
+
+To access your tags mini-app, use the Menu Button (☰) next to the message input field.
+
+Alternatively, you can try this direct link (may require Telegram context):`
+
+	// Create a regular URL button as fallback
+	webAppURL := "https://tg-bot-storage-fjod.website.yandexcloud.net"
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonURL("🏷️ View My Tags", webAppURL),
+			tgbotapi.NewInlineKeyboardButtonURL("🔗 Direct Link", webAppURL),
 		),
 	)
 
-	msg := tgbotapi.NewMessage(message.Chat.ID, "Open the mini-app to view and manage your tags:")
+	msg := tgbotapi.NewMessage(message.Chat.ID, responseText)
+	msg.ParseMode = "Markdown"
 	msg.ReplyMarkup = keyboard
 
 	if _, err := bot.Send(msg); err != nil {

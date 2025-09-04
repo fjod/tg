@@ -90,13 +90,44 @@ H:\tg\tg\functions\bot\
 - **CI/CD**: Manual deployment process
 - **Environment**: Production-ready with error handling and logging
 
+### ⚠️ Phase 4: Mini-App Implementation (In Progress)
+
+**Current Status**: API backend partially complete, frontend missing, deployment issues identified
+
+#### ✅ Backend API (Go Cloud Functions) - Partially Complete
+- **File Structure**: Complete miniapp-api/ directory with proper Go modules
+- **API Endpoint**: `/api/user/tags` implemented with proper CORS and error handling
+- **Database Integration**: PostgreSQL connection with tag fetching and message count queries
+- **Authentication**: Telegram Web App `initData` validation system implemented
+- **Deployment**: Function deployed to Yandex Cloud Functions
+
+#### ❌ Frontend Mini-App (Not Started)
+- **Technology Stack**: React-based frontend planned but not implemented
+- **File Structure**: No miniapp-frontend/ directory exists
+- **Components**: TagList, TagItem, Header components not created
+- **Telegram SDK**: Web App integration not implemented
+
+#### ⚠️ Integration Issues Identified
+- **Button Type**: Using URL button instead of Web App button in `handler.go:86`
+- **404 Error**: API endpoint returns 404 when accessed directly (no root route handler)
+- **Missing Frontend**: No HTML/React app to serve from the API or separate hosting
+- **BotFather Config**: `/setmenubutton` not configured for proper Web App integration
+
+#### Required Fixes
+1. Change button type in `handler.go` from URL to WebApp
+2. Create and deploy React frontend application
+3. Configure BotFather with `/setmenubutton` command
+4. Add root route handler to serve frontend or set up separate hosting
+5. Test complete integration with Telegram Web App context
+
 ## Next Steps / Future Improvements
-1. **Search Functionality**: Implement message search by tags, content, or metadata
-2. **Export Features**: Allow users to export their tagged messages
-3. **Advanced Tagging**: Tag hierarchies, tag suggestions, bulk tagging
-4. **Analytics**: Usage statistics and content insights
-5. **Performance**: Optimize database queries and caching
-6. **Additional Tests**: Integration tests and end-to-end testing
+1. **Complete Mini-App**: Finish React frontend and fix integration issues
+2. **Search Functionality**: Implement message search by tags, content, or metadata
+3. **Export Features**: Allow users to export their tagged messages
+4. **Advanced Tagging**: Tag hierarchies, tag suggestions, bulk tagging
+5. **Analytics**: Usage statistics and content insights
+6. **Performance**: Optimize database queries and caching
+7. **Additional Tests**: Integration tests and end-to-end testing
 
 ## Development Notes
 - **Go Version**: Compatible with Go 1.x
@@ -110,8 +141,10 @@ H:\tg\tg\functions\bot\
 - Achieved 100% test coverage on core message processing functionality
 - Established comprehensive testing patterns for future development
 - Documented all regex behavior edge cases for maintainability
+- **Mini-App Analysis**: Identified implementation gaps and integration issues
+- **Progress Documentation**: Updated project status to reflect mini-app development phase
 
 ---
-*Last Updated: 2025-09-02*
+*Last Updated: 2025-09-04*
 *Test Coverage: message.go (100%), handler.go (16.1%)*
-*Status: All core functionality tested and working*
+*Status: Core bot functionality complete, mini-app backend partial, frontend pending*
