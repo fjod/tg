@@ -1,0 +1,18 @@
+{
+  "short_name": "Tag Manager",
+  "name": "Telegram Content Organizer",
+  "description": "View and manage your message tags",
+  "start_url": "./",
+  "display": "standalone",
+  "theme_color": "#007aff",
+  "background_color": "#ffffff",
+  "orientation": "portrait",
+  "scope": "./",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMjQiIGZpbGw9IiMwMDdhZmYiLz4KPHN2ZyB4PSI0OCIgeT0iNDgiIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJ3aGl0ZSI+CjxwYXRoIGQ9Ik0xNy42MyA1LjgyQzE3LjM5IDUuMzYgMTYuNzYgNS4zNiAxNi41MiA1LjgyTDEyIDEzLjQ0IDcuNDggNS44MkM3LjI0IDUuMzYgNi42MSA1LjM2IDYuMzcgNS44MkM2LjEzIDYuMjggNi4zNyA2Ljg0IDYuODYgNi45TDEwLjk0IDE3LjU4QzExLjIxIDE4LjE0IDEyLjc5IDE4LjE0IDEzLjA2IDE3LjU4TDE3LjE0IDYuOUMxNy42MyA2Ljg0IDE3Ljg3IDYuMjggMTcuNjMgNS44MloiLz4KPHN2Zz4KPHN2Zz4=",
+      "type": "image/svg+xml",
+      "sizes": "192x192"
+    }
+  ]
+}
