@@ -75,7 +75,7 @@ func getUserTagsHandler(c *gin.Context, db *sql.DB) {
 	if authHeader == "" {
 		c.JSON(http.StatusUnauthorized, APIResponse{
 			Success: false,
-			Error:   "Authorization header is required",
+			Error:   "Authorization header is required!",
 		})
 		return
 	}

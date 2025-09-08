@@ -2,8 +2,6 @@ module telegram-content-organizer-miniapp-api
 
 go 1.23.0
 
-toolchain go1.24.4
-
 require (
 	github.com/aws/aws-lambda-go v1.41.0
 	github.com/gin-gonic/gin v1.10.0
