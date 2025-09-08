@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import Header from './components/Header.jsx';
 import TagList from './components/TagList.jsx';
 import telegramApp from './utils/telegram.js';
+import apiService from './services/api.js';
 import './styles.css';
 
 function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState(null);
   const [theme, setTheme] = useState({});
+  const [healthCheckResult, setHealthCheckResult] = useState(null);
 
   useEffect(() => {
     initializeApp();
@@ -48,6 +50,44 @@ function App() {
 
       // Apply theme colors to CSS variables
       applyTheme(themeColors);
+
+      // Perform health check to test API connectivity
+      console.log('Performing health check...');
+      try {
+        const healthUrl = `${apiService.getBaseURL()}/api/health`;
+        console.log('Health check URL:', healthUrl);
+        
+        const response = await fetch(healthUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000,
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const healthResponse = await response.json();
+        console.log('Health check successful:', healthResponse);
+        setHealthCheckResult({
+          success: true,
+          data: healthResponse,
+          apiUrl: apiService.getBaseURL(),
+          fullUrl: healthUrl,
+          timestamp: new Date().toISOString()
+        });
+      } catch (healthError) {
+        console.error('Health check failed:', healthError);
+        setHealthCheckResult({
+          success: false,
+          error: healthError.message,
+          apiUrl: apiService.getBaseURL(),
+          fullUrl: `${apiService.getBaseURL()}/api/health`,
+          timestamp: new Date().toISOString()
+        });
+      }
 
       setIsInitialized(true);
       console.log('App initialized successfully');
@@ -118,7 +158,36 @@ function App() {
     <div className="app" style={{ backgroundColor: theme.bg_color }}>
       <Header />
       <main className="app-main">
-        <TagList />
+        {/* Health Check Debug Info */}
+        {healthCheckResult && (
+          <div 
+            className="health-check-info"
+            style={{
+              backgroundColor: theme.secondary_bg_color,
+              color: theme.text_color,
+              margin: '10px',
+              padding: '10px',
+              borderRadius: '8px',
+              fontSize: '12px',
+              border: `1px solid ${healthCheckResult.success ? '#4CAF50' : '#ff6b6b'}`
+            }}
+          >
+            <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
+              🔗 API Health Check {healthCheckResult.success ? '✅' : '❌'}
+            </div>
+            <div>Base URL: {healthCheckResult.apiUrl}</div>
+            <div>Full URL: {healthCheckResult.fullUrl}</div>
+            <div>Status: {healthCheckResult.success ? 'Connected' : 'Failed'}</div>
+            {healthCheckResult.success && healthCheckResult.data && (
+              <div>Response: {JSON.stringify(healthCheckResult.data)}</div>
+            )}
+            {!healthCheckResult.success && (
+              <div style={{ color: '#ff6b6b' }}>Error: {healthCheckResult.error}</div>
+            )}
+            <div>Time: {new Date(healthCheckResult.timestamp).toLocaleTimeString()}</div>
+          </div>
+        )}
+        <TagList healthCheckResult={healthCheckResult} />
       </main>
     </div>
   );

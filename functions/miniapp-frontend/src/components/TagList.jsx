@@ -3,10 +3,11 @@ import TagItem from './TagItem.jsx';
 import apiService from '../services/api.js';
 import telegramApp from '../utils/telegram.js';
 
-const TagList = () => {
+const TagList = ({ healthCheckResult }) => {
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [debugInfo, setDebugInfo] = useState(null);
   const theme = telegramApp.getTheme();
 
   useEffect(() => {
@@ -17,12 +18,57 @@ const TagList = () => {
     try {
       setLoading(true);
       setError(null);
+      setDebugInfo(null);
+
+      // First check if health check was successful
+      if (healthCheckResult && !healthCheckResult.success) {
+        console.warn('Health check failed, attempting to load tags anyway...');
+        setDebugInfo({
+          healthCheckStatus: 'failed',
+          healthCheckError: healthCheckResult.error,
+          attemptingTagsAnyway: true
+        });
+      } else if (healthCheckResult && healthCheckResult.success) {
+        console.log('Health check passed, loading tags...');
+        setDebugInfo({
+          healthCheckStatus: 'passed',
+          apiConnectivity: 'confirmed'
+        });
+      }
+
+      // Check authentication data
+      const authData = telegramApp.getAuthData();
+      const user = telegramApp.getUser();
+      
+      console.log('Authentication debug:', {
+        hasAuthData: !!authData,
+        authDataLength: authData?.length || 0,
+        hasUser: !!user,
+        userId: user?.id,
+        isInTelegram: telegramApp.isInTelegram()
+      });
+
+      setDebugInfo(prev => ({
+        ...prev,
+        hasAuthData: !!authData,
+        authDataLength: authData?.length || 0,
+        hasUser: !!user,
+        userId: user?.id,
+        isInTelegram: telegramApp.isInTelegram(),
+        apiUrl: apiService.getBaseURL()
+      }));
       
       console.log('Loading tags...');
       const userTags = await apiService.getUserTags();
       
-      console.log('Tags loaded:', userTags);
+      console.log('Tags loaded successfully:', userTags);
       setTags(userTags);
+      
+      setDebugInfo(prev => ({
+        ...prev,
+        tagsLoaded: true,
+        tagCount: userTags?.length || 0
+      }));
       
       // Show success haptic feedback
       telegramApp.hapticFeedback('notification', 'success');
@@ -30,6 +76,11 @@ const TagList = () => {
     } catch (err) {
       console.error('Failed to load tags:', err);
       setError(err.message);
+      setDebugInfo(prev => ({
+        ...prev,
+        tagsLoaded: false,
+        tagError: err.message
+      }));
       telegramApp.hapticFeedback('notification', 'error');
     } finally {
       setLoading(false);
@@ -116,6 +167,37 @@ const TagList = () => {
 
   return (
     <div className="tag-list-container">
+      {/* Debug Information Display */}
+      {debugInfo && (
+        <div 
+          className="debug-info"
+          style={{
+            backgroundColor: theme.secondary_bg_color,
+            color: theme.text_color,
+            margin: '10px',
+            padding: '8px',
+            borderRadius: '6px',
+            fontSize: '11px',
+            border: `1px solid ${theme.hint_color}`,
+            fontFamily: 'monospace'
+          }}
+        >
+          <div style={{ fontWeight: 'bold', marginBottom: '5px', color: theme.link_color }}>
+            🔍 Debug Information
+          </div>
+          {debugInfo.healthCheckStatus && (
+            <div>Health Check: {debugInfo.healthCheckStatus} {debugInfo.healthCheckStatus === 'passed' ? '✅' : '❌'}</div>
+          )}
+          <div>In Telegram: {debugInfo.isInTelegram ? 'Yes ✅' : 'No ❌'}</div>
+          <div>Has Auth Data: {debugInfo.hasAuthData ? 'Yes ✅' : 'No ❌'} {debugInfo.hasAuthData && `(${debugInfo.authDataLength} chars)`}</div>
+          <div>Has User: {debugInfo.hasUser ? 'Yes ✅' : 'No ❌'} {debugInfo.hasUser && `(ID: ${debugInfo.userId})`}</div>
+          <div>API URL: {debugInfo.apiUrl}</div>
+          {debugInfo.tagsLoaded !== undefined && (
+            <div>Tags Loaded: {debugInfo.tagsLoaded ? `Yes ✅ (${debugInfo.tagCount})` : `No ❌ - ${debugInfo.tagError}`}</div>
+          )}
+        </div>
+      )}
+
       <div className="tag-list-header">
         <p 
           className="tag-count"

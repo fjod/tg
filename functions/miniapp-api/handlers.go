@@ -37,10 +37,12 @@ func setupRoutes(db *sql.DB) *gin.Engine {
 				Data:    map[string]string{"status": "healthy", "timestamp": "2025-01-15T12:00:00Z"},
 			})
 		})
+		api.OPTIONS("/health", optionsHandler)
 
 		api.GET("/user/tags", func(c *gin.Context) {
 			getUserTagsHandler(c, db)
 		})
+		api.OPTIONS("/user/tags", optionsHandler)
 	}
 
 	return r
@@ -59,6 +61,12 @@ func corsMiddleware() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+func optionsHandler(c *gin.Context) {
+	// OPTIONS requests are handled by CORS middleware
+	// Just return 200 OK status
+	c.Status(http.StatusOK)
 }
 
 func getUserTagsHandler(c *gin.Context, db *sql.DB) {
