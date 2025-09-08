@@ -17,6 +17,7 @@ jobs:
     outputs:
       bot: ${{ steps.changes.outputs.bot }}
       miniapp-api: ${{ steps.changes.outputs.miniapp-api }}
+      miniapp-frontend: ${{ steps.changes.outputs.miniapp-frontend }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -35,6 +36,12 @@ jobs:
             echo "miniapp-api=true" >> $GITHUB_OUTPUT
           else
             echo "miniapp-api=false" >> $GITHUB_OUTPUT
+          fi
+          
+          if git diff --name-only HEAD~1 HEAD | grep -q '^functions/miniapp-frontend/'; then
+            echo "miniapp-frontend=true" >> $GITHUB_OUTPUT
+          else
+            echo "miniapp-frontend=false" >> $GITHUB_OUTPUT
           fi
 
   deploy-bot:
@@ -67,9 +74,9 @@ jobs:
           --function-id=d4eqrudr11gga4ooul1b \
           --runtime=golang123 \
           --entrypoint=main.Handler \
-          --memory=256m \
+          --memory=128@m \
           --execution-timeout=15s \
-          --min-log-level=warn \
+          --min-log-level=trace \
           --source-path=bot.zip \
           --service-account-id=aje11ekf8scj1bonpe5f \
           --environment TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}" \
@@ -105,10 +112,45 @@ jobs:
           --function-id=d4ek5oug8uak4lb9edsl \
           --runtime=golang123 \
           --entrypoint=main.Handler \
-          --memory=256m \
+          --memory=128m \
+          --min-log-level=trace \
           --execution-timeout=15s \
-          --min-log-level=warn \
           --source-path=miniapp-api.zip \
           --service-account-id=aje11ekf8scj1bonpe5f \
           --environment TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}" \
           --secret id=e6qbqd22iqgdodsr88h9,version-id=e6qma8o20k79tg7plg9g,key=DATABASE_URL,environment-variable=DATABASE_URL
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.miniapp-frontend == 'true'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: functions/miniapp-frontend/package-lock.json
+    
+    - name: Install dependencies
+      run: |
+        cd functions/miniapp-frontend
+        npm install
+    
+    - name: Build frontend
+      run: |
+        cd functions/miniapp-frontend
+        npm run build
+    
+    - name: Upload to Yandex Cloud Storage
+      uses: yc-actions/yc-obj-storage-upload@v2
+      with:
+        yc-sa-json-credentials: ${{ secrets.YC_SERVICE_ACCOUNT_KEY }}
+        bucket: ${{ secrets.BUCKET_NAME }}
+        root: ./functions/miniapp-frontend/build
+        include: |
+          **/*
+        clear: true

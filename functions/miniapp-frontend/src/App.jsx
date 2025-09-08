@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import Header from './components/Header.jsx';
 import TagList from './components/TagList.jsx';
+import HealthCheckWidget from './components/HealthCheckWidget.jsx';
+import DebugWidget from './components/DebugWidget.jsx';
+import { ErrorProvider, useError } from './contexts/ErrorContext.jsx';
 import telegramApp from './utils/telegram.js';
 import apiService from './services/api.js';
 import './styles.css';
 
-function App() {
+function AppContent() {
   const [isInitialized, setIsInitialized] = useState(false);
-  const [error, setError] = useState(null);
   const [theme, setTheme] = useState({});
-  const [healthCheckResult, setHealthCheckResult] = useState(null);
+  const { addError, clearAllErrors, updateHealthStatus, markSuccessfulCall } = useError();
 
   useEffect(() => {
     initializeApp();
@@ -24,7 +26,7 @@ function App() {
       
       if (!initialized) {
         console.warn('Running outside Telegram - using mock data for development');
-        setError('This app should be opened from Telegram');
+        addError('general', 'This app should be opened from Telegram');
       }
 
       // Check if we have user authentication
@@ -39,7 +41,7 @@ function App() {
       });
 
       if (!telegramApp.isInTelegram() && process.env.NODE_ENV === 'production') {
-        setError('This app can only be opened from Telegram');
+        addError('auth', 'This app can only be opened from Telegram');
         return;
       }
 
@@ -71,21 +73,25 @@ function App() {
         
         const healthResponse = await response.json();
         console.log('Health check successful:', healthResponse);
-        setHealthCheckResult({
-          success: true,
-          data: healthResponse,
-          apiUrl: apiService.getBaseURL(),
-          fullUrl: healthUrl,
-          timestamp: new Date().toISOString()
+        
+        // Mark successful API call
+        markSuccessfulCall('/api/health');
+        updateHealthStatus({
+          api: 'healthy',
+          connectivity: 'online'
         });
+        
       } catch (healthError) {
         console.error('Health check failed:', healthError);
-        setHealthCheckResult({
-          success: false,
-          error: healthError.message,
-          apiUrl: apiService.getBaseURL(),
-          fullUrl: `${apiService.getBaseURL()}/api/health`,
-          timestamp: new Date().toISOString()
+        addError('api', healthError, {
+          endpoint: '/api/health',
+          url: `${apiService.getBaseURL()}/api/health`,
+          method: 'GET'
+        });
+        
+        updateHealthStatus({
+          api: 'error',
+          connectivity: 'error'
         });
       }
 
@@ -94,7 +100,7 @@ function App() {
 
     } catch (err) {
       console.error('Failed to initialize app:', err);
-      setError('Failed to initialize the app');
+      addError('general', 'Failed to initialize the app', { originalError: err.message });
     }
   };
 
@@ -116,14 +122,17 @@ function App() {
   };
 
   const handleRetryInit = () => {
-    setError(null);
+    clearAllErrors();
     setIsInitialized(false);
     telegramApp.hapticFeedback('impact', 'light');
     setTimeout(initializeApp, 100);
   };
 
+  const { hasErrors, getCurrentError } = useError();
+  const currentError = getCurrentError();
+
   // Loading state
-  if (!isInitialized && !error) {
+  if (!isInitialized && !hasErrors) {
     return (
       <div className="app-loading">
         <div className="loading-spinner"></div>
@@ -132,14 +141,14 @@ function App() {
     );
   }
 
-  // Error state
-  if (error) {
+  // Error state during initialization
+  if (!isInitialized && hasErrors) {
     return (
       <div className="app-error">
         <div className="error-content">
           <div className="error-icon">⚠️</div>
           <h2>Initialization Failed</h2>
-          <p>{error}</p>
+          <p>{currentError?.message || 'Unknown error occurred'}</p>
           {process.env.NODE_ENV === 'development' && (
             <div className="dev-info">
               <p>Development mode: Some features may not work outside Telegram</p>
@@ -158,38 +167,22 @@ function App() {
     <div className="app" style={{ backgroundColor: theme.bg_color }}>
       <Header />
       <main className="app-main">
-        {/* Health Check Debug Info */}
-        {healthCheckResult && (
-          <div 
-            className="health-check-info"
-            style={{
-              backgroundColor: theme.secondary_bg_color,
-              color: theme.text_color,
-              margin: '10px',
-              padding: '10px',
-              borderRadius: '8px',
-              fontSize: '12px',
-              border: `1px solid ${healthCheckResult.success ? '#4CAF50' : '#ff6b6b'}`
-            }}
-          >
-            <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
-              🔗 API Health Check {healthCheckResult.success ? '✅' : '❌'}
-            </div>
-            <div>Base URL: {healthCheckResult.apiUrl}</div>
-            <div>Full URL: {healthCheckResult.fullUrl}</div>
-            <div>Status: {healthCheckResult.success ? 'Connected' : 'Failed'}</div>
-            {healthCheckResult.success && healthCheckResult.data && (
-              <div>Response: {JSON.stringify(healthCheckResult.data)}</div>
-            )}
-            {!healthCheckResult.success && (
-              <div style={{ color: '#ff6b6b' }}>Error: {healthCheckResult.error}</div>
-            )}
-            <div>Time: {new Date(healthCheckResult.timestamp).toLocaleTimeString()}</div>
-          </div>
-        )}
-        <TagList healthCheckResult={healthCheckResult} />
+        {/* Conditional error widgets - only show when there are errors */}
+        <HealthCheckWidget />
+        <DebugWidget />
+        
+        <TagList />
       </main>
     </div>
+  );
+}
+
+// Wrapper component with ErrorProvider
+function App() {
+  return (
+    <ErrorProvider>
+      <AppContent />
+    </ErrorProvider>
   );
 }
 

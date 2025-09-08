@@ -43,10 +43,16 @@ const TagList = ({ healthCheckResult }) => {
       console.log('Authentication debug:', {
         hasAuthData: !!authData,
         authDataLength: authData?.length || 0,
+        authDataSample: authData ? authData.substring(0, 100) + '...' : null,
         hasUser: !!user,
         userId: user?.id,
         isInTelegram: telegramApp.isInTelegram()
       });
+
+      // Log the full auth data for debugging (be careful in production)
+      if (authData) {
+        console.log('Full auth data being sent:', authData);
+      }
 
       setDebugInfo(prev => ({
         ...prev,
@@ -167,37 +173,6 @@ const TagList = ({ healthCheckResult }) => {
 
   return (
     <div className="tag-list-container">
-      {/* Debug Information Display */}
-      {debugInfo && (
-        <div 
-          className="debug-info"
-          style={{
-            backgroundColor: theme.secondary_bg_color,
-            color: theme.text_color,
-            margin: '10px',
-            padding: '8px',
-            borderRadius: '6px',
-            fontSize: '11px',
-            border: `1px solid ${theme.hint_color}`,
-            fontFamily: 'monospace'
-          }}
-        >
-          <div style={{ fontWeight: 'bold', marginBottom: '5px', color: theme.link_color }}>
-            🔍 Debug Information
-          </div>
-          {debugInfo.healthCheckStatus && (
-            <div>Health Check: {debugInfo.healthCheckStatus} {debugInfo.healthCheckStatus === 'passed' ? '✅' : '❌'}</div>
-          )}
-          <div>In Telegram: {debugInfo.isInTelegram ? 'Yes ✅' : 'No ❌'}</div>
-          <div>Has Auth Data: {debugInfo.hasAuthData ? 'Yes ✅' : 'No ❌'} {debugInfo.hasAuthData && `(${debugInfo.authDataLength} chars)`}</div>
-          <div>Has User: {debugInfo.hasUser ? 'Yes ✅' : 'No ❌'} {debugInfo.hasUser && `(ID: ${debugInfo.userId})`}</div>
-          <div>API URL: {debugInfo.apiUrl}</div>
-          {debugInfo.tagsLoaded !== undefined && (
-            <div>Tags Loaded: {debugInfo.tagsLoaded ? `Yes ✅ (${debugInfo.tagCount})` : `No ❌ - ${debugInfo.tagError}`}</div>
-          )}
-        </div>
-      )}
-
       <div className="tag-list-header">
         <p 
           className="tag-count"

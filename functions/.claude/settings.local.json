@@ -12,7 +12,14 @@
       "Bash(go run:*)",
       "Read(\\/**)",
       "Read(H:\\tg\\tg\\.github\\workflows/**)",
-      "Read(H:\\tg\\tg\\.github\\workflows/**)"
+      "Read(H:\\tg\\tg\\.github\\workflows/**)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:pkg.go.dev)",
+      "WebFetch(domain:stackoverflow.com)",
+      "Bash(grep:*)",
+      "Read(//h/tg/tg/.github/workflows/**)",
+      "Read(//h/tg/tg/**)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []
