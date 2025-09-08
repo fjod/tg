@@ -6,8 +6,8 @@ import telegramApp from '../utils/telegram.js';
 
 class ApiService {
   constructor() {
-    // Use the same URL as in bot handler.go:86
-    this.baseURL = 'https://functions.yandexcloud.net/d4ek5oug8uak4lb9edsl';
+    // Use API Gateway URL instead of direct function URL for proper HTTP handling
+    this.baseURL = 'https://d5di1npf8thkd9m534rv.8wihnuyr.apigw.yandexcloud.net';
     this.timeout = 10000; // 10 seconds timeout
   }
 

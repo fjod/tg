@@ -30,6 +30,14 @@ func setupRoutes(db *sql.DB) *gin.Engine {
 	// API routes
 	api := r.Group("/api")
 	{
+		// Health check endpoint (no auth required)
+		api.GET("/health", func(c *gin.Context) {
+			c.JSON(http.StatusOK, APIResponse{
+				Success: true,
+				Data:    map[string]string{"status": "healthy", "timestamp": "2025-01-15T12:00:00Z"},
+			})
+		})
+
 		api.GET("/user/tags", func(c *gin.Context) {
 			getUserTagsHandler(c, db)
 		})

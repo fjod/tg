@@ -18,6 +18,17 @@ func getBotToken() string {
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	// Log incoming request details
+	log.Printf("=== LAMBDA REQUEST RECEIVED ===")
+	log.Printf("HTTP Method: %s", request.HTTPMethod)
+	log.Printf("Path: %s", request.Path)
+	log.Printf("Resource: %s", request.Resource)
+	log.Printf("Stage: %s", request.RequestContext.Stage)
+	log.Printf("Headers: %+v", request.Headers)
+	log.Printf("Query Params: %+v", request.QueryStringParameters)
+	log.Printf("Body: %s", request.Body)
+	log.Printf("==============================")
+
 	// Initialize database connection if not already done
 	if db == nil {
 		var err error
@@ -60,6 +71,22 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	// Process the request
 	router.ServeHTTP(recorder, req)
 
+	// Ensure we always have a status code
+	if recorder.statusCode == 0 {
+		recorder.statusCode = 200
+	}
+
+	// Ensure CORS headers are always present
+	if recorder.headers == nil {
+		recorder.headers = make(map[string]string)
+	}
+	recorder.headers["Access-Control-Allow-Origin"] = "*"
+	recorder.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+	recorder.headers["Access-Control-Allow-Headers"] = "Origin, Content-Type, Authorization"
+
+	log.Printf("Returning response - Status: %d, Body length: %d, Headers: %+v",
+		recorder.statusCode, len(recorder.body), recorder.headers)
+
 	// Convert to Lambda response
 	return events.APIGatewayProxyResponse{
 		StatusCode: recorder.statusCode,
@@ -69,9 +96,19 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 }
 
 func convertLambdaRequest(request events.APIGatewayProxyRequest) (*http.Request, error) {
+	// Determine the correct path to use
+	path := request.Path
+	if path == "" {
+		path = request.Resource
+	}
+
+	log.Printf("Converting request - Original Path: '%s', Resource: '%s', Using: '%s'",
+		request.Path, request.Resource, path)
+
 	// Create HTTP request from Lambda request
-	req, err := http.NewRequest(request.HTTPMethod, request.Path, nil)
+	req, err := http.NewRequest(request.HTTPMethod, path, nil)
 	if err != nil {
+		log.Printf("Failed to create HTTP request: %v", err)
 		return nil, err
 	}
 
@@ -80,12 +117,16 @@ func convertLambdaRequest(request events.APIGatewayProxyRequest) (*http.Request,
 		req.Header.Set(key, value)
 	}
 
+	log.Printf("Added %d headers to request", len(request.Headers))
+
 	// Add query parameters
 	q := req.URL.Query()
 	for key, value := range request.QueryStringParameters {
 		q.Add(key, value)
 	}
 	req.URL.RawQuery = q.Encode()
+
+	log.Printf("Final request URL: %s", req.URL.String())
 
 	return req, nil
 }
