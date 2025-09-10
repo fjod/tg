@@ -74,7 +74,7 @@ jobs:
           --function-id=d4eqrudr11gga4ooul1b \
           --runtime=golang123 \
           --entrypoint=main.Handler \
-          --memory=128@m \
+          --memory=128m \
           --execution-timeout=15s \
           --min-log-level=trace \
           --source-path=bot.zip \
