@@ -164,6 +164,108 @@ class TelegramWebApp {
         break;
     }
   }
+
+  /**
+   * Open Telegram link (redirect to message or other Telegram content)
+   * @param {string} url - Telegram URL (e.g., t.me/c/chatid/messageid)
+   * @param {Object} options - Additional options
+   */
+  openTelegramLink(url, options = {}) {
+    if (!url) {
+      console.error('No URL provided for Telegram link');
+      return false;
+    }
+
+    console.log('Opening Telegram link:', url);
+
+    if (this.tg?.openTelegramLink) {
+      try {
+        this.tg.openTelegramLink(url, options);
+        return true;
+      } catch (error) {
+        console.error('Failed to open Telegram link via WebApp:', error);
+        return false;
+      }
+    } else {
+      console.warn('Telegram WebApp openTelegramLink not available, using fallback');
+      
+      // Fallback for development or if WebApp API is unavailable
+      try {
+        window.open(url, '_blank');
+        return true;
+      } catch (error) {
+        console.error('Failed to open Telegram link via fallback:', error);
+        return false;
+      }
+    }
+  }
+
+  /**
+   * Generate Telegram message URL for redirection
+   * @param {number} messageId - Telegram message ID
+   * @param {number} chatId - Chat ID (optional, uses current user if not provided)
+   * @returns {string} Telegram message URL
+   */
+  generateMessageUrl(messageId, chatId = null) {
+    if (!messageId) {
+      console.error('Message ID is required for URL generation');
+      return null;
+    }
+
+    // Use provided chatId or fallback to current user
+    const targetChatId = chatId || this.user?.id;
+    
+    if (!targetChatId) {
+      console.error('No chat ID available for URL generation');
+      return null;
+    }
+
+    // For private chats, use the direct message format
+    // Note: This format may need adjustment based on actual chat structure
+    const url = `https://t.me/c/${targetChatId}/${messageId}`;
+    console.log('Generated message URL:', url);
+    
+    return url;
+  }
+
+  /**
+   * Redirect to a specific Telegram message
+   * @param {Object} message - Message object with telegram_message_id
+   * @param {number} chatId - Optional chat ID, uses current user if not provided
+   * @returns {boolean} True if redirection was attempted
+   */
+  redirectToMessage(message, chatId = null) {
+    if (!message || !message.telegram_message_id) {
+      console.error('Invalid message object for redirection');
+      this.showAlert('Unable to redirect to message: Invalid message data');
+      return false;
+    }
+
+    try {
+      const messageUrl = this.generateMessageUrl(message.telegram_message_id, chatId);
+      
+      if (!messageUrl) {
+        throw new Error('Failed to generate message URL');
+      }
+
+      const success = this.openTelegramLink(messageUrl);
+      
+      if (success) {
+        // Provide haptic feedback for successful redirection
+        this.hapticFeedback('impact', 'medium');
+        console.log('Successfully redirected to message:', message.telegram_message_id);
+      } else {
+        throw new Error('Failed to open Telegram link');
+      }
+
+      return success;
+    } catch (error) {
+      console.error('Failed to redirect to message:', error);
+      this.showAlert('Unable to open message in Telegram. Please try again.');
+      this.hapticFeedback('notification', 'error');
+      return false;
+    }
+  }
 }
 
 // Create singleton instance

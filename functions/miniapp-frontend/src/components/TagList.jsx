@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import TagItem from './TagItem.jsx';
+import { useError } from '../contexts/ErrorContext.jsx';
+import { useNavigation } from '../contexts/NavigationContext.jsx';
 import apiService from '../services/api.js';
 import telegramApp from '../utils/telegram.js';
 
-const TagList = ({ healthCheckResult }) => {
+const TagList = () => {
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [debugInfo, setDebugInfo] = useState(null);
+  const { addError, clearError, markSuccessfulCall, hasApiError } = useError();
+  const { navigateToMessages } = useNavigation();
   const theme = telegramApp.getTheme();
 
   useEffect(() => {
@@ -17,24 +19,7 @@ const TagList = ({ healthCheckResult }) => {
   const loadTags = async () => {
     try {
       setLoading(true);
-      setError(null);
-      setDebugInfo(null);
-
-      // First check if health check was successful
-      if (healthCheckResult && !healthCheckResult.success) {
-        console.warn('Health check failed, attempting to load tags anyway...');
-        setDebugInfo({
-          healthCheckStatus: 'failed',
-          healthCheckError: healthCheckResult.error,
-          attemptingTagsAnyway: true
-        });
-      } else if (healthCheckResult && healthCheckResult.success) {
-        console.log('Health check passed, loading tags...');
-        setDebugInfo({
-          healthCheckStatus: 'passed',
-          apiConnectivity: 'confirmed'
-        });
-      }
+      clearError('api');
 
       // Check authentication data
       const authData = telegramApp.getAuthData();
@@ -43,26 +28,15 @@ const TagList = ({ healthCheckResult }) => {
       console.log('Authentication debug:', {
         hasAuthData: !!authData,
         authDataLength: authData?.length || 0,
-        authDataSample: authData ? authData.substring(0, 100) + '...' : null,
         hasUser: !!user,
         userId: user?.id,
         isInTelegram: telegramApp.isInTelegram()
       });
 
-      // Log the full auth data for debugging (be careful in production)
-      if (authData) {
-        console.log('Full auth data being sent:', authData);
+      // Validate authentication before making API call
+      if (!authData && telegramApp.isInTelegram()) {
+        throw new Error('No authentication data available');
       }
-
-      setDebugInfo(prev => ({
-        ...prev,
-        hasAuthData: !!authData,
-        authDataLength: authData?.length || 0,
-        hasUser: !!user,
-        userId: user?.id,
-        isInTelegram: telegramApp.isInTelegram(),
-        apiUrl: apiService.getBaseURL()
-      }));
       
       console.log('Loading tags...');
       const userTags = await apiService.getUserTags();
@@ -70,23 +44,25 @@ const TagList = ({ healthCheckResult }) => {
       console.log('Tags loaded successfully:', userTags);
       setTags(userTags);
       
-      setDebugInfo(prev => ({
-        ...prev,
-        tagsLoaded: true,
-        tagCount: userTags?.length || 0
-      }));
+      // Mark successful API call
+      markSuccessfulCall('/api/user/tags');
       
       // Show success haptic feedback
       telegramApp.hapticFeedback('notification', 'success');
       
     } catch (err) {
       console.error('Failed to load tags:', err);
-      setError(err.message);
-      setDebugInfo(prev => ({
-        ...prev,
-        tagsLoaded: false,
-        tagError: err.message
-      }));
+      
+      // Determine error type
+      const errorType = err.message?.includes('auth') ? 'auth' : 'api';
+      
+      addError(errorType, err, {
+        endpoint: '/api/user/tags',
+        method: 'GET',
+        hasAuthData: !!telegramApp.getAuthData(),
+        isInTelegram: telegramApp.isInTelegram()
+      });
+      
       telegramApp.hapticFeedback('notification', 'error');
     } finally {
       setLoading(false);
@@ -95,7 +71,7 @@ const TagList = ({ healthCheckResult }) => {
 
   const handleTagClick = (tag) => {
     console.log('Tag clicked:', tag);
-    telegramApp.showAlert(`Tag: ${tag.name}\nMessages: ${tag.message_count}`);
+    navigateToMessages(tag);
   };
 
   const handleRetry = () => {

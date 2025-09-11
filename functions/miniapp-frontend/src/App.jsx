@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import Header from './components/Header.jsx';
 import TagList from './components/TagList.jsx';
+import MessageList from './components/MessageList.jsx';
 import HealthCheckWidget from './components/HealthCheckWidget.jsx';
 import DebugWidget from './components/DebugWidget.jsx';
 import { ErrorProvider, useError } from './contexts/ErrorContext.jsx';
+import { NavigationProvider, useNavigation } from './contexts/NavigationContext.jsx';
 import telegramApp from './utils/telegram.js';
 import apiService from './services/api.js';
 import './styles.css';
@@ -12,6 +14,7 @@ function AppContent() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [theme, setTheme] = useState({});
   const { addError, clearAllErrors, updateHealthStatus, markSuccessfulCall } = useError();
+  const { currentView, isInTagsView, isInMessagesView } = useNavigation();
 
   useEffect(() => {
     initializeApp();
@@ -162,6 +165,24 @@ function AppContent() {
     );
   }
 
+  // Render current view based on navigation state
+  const renderCurrentView = () => {
+    switch (currentView) {
+      case 'messages':
+        return <MessageList />;
+      case 'loading':
+        return (
+          <div className="app-loading">
+            <div className="loading-spinner"></div>
+            <p>Loading...</p>
+          </div>
+        );
+      case 'tags':
+      default:
+        return <TagList />;
+    }
+  };
+
   // Main app
   return (
     <div className="app" style={{ backgroundColor: theme.bg_color }}>
@@ -171,17 +192,20 @@ function AppContent() {
         <HealthCheckWidget />
         <DebugWidget />
         
-        <TagList />
+        {/* Render current view */}
+        {renderCurrentView()}
       </main>
     </div>
   );
 }
 
-// Wrapper component with ErrorProvider
+// Wrapper component with providers
 function App() {
   return (
     <ErrorProvider>
-      <AppContent />
+      <NavigationProvider>
+        <AppContent />
+      </NavigationProvider>
     </ErrorProvider>
   );
 }

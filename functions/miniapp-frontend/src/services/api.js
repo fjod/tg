@@ -100,6 +100,39 @@ class ApiService {
   }
 
   /**
+   * Get messages for a specific tag
+   * @param {number} tagId - The tag ID to get messages for
+   * @returns {Promise<Array>} Array of message objects
+   */
+  async getTagMessages(tagId) {
+    try {
+      if (!tagId) {
+        throw new Error('Tag ID is required');
+      }
+
+      const response = await this.request(`/api/user/tags/${tagId}/messages`);
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch messages');
+      }
+
+      return response.data || [];
+    } catch (error) {
+      console.error(`Failed to get messages for tag ${tagId}:`, error);
+      
+      // Provide more specific error messages
+      if (error.message.includes('404')) {
+        throw new Error('Tag not found or you don\'t have access to it');
+      }
+      if (error.message.includes('403')) {
+        throw new Error('You don\'t have permission to view messages for this tag');
+      }
+      
+      throw new Error(`Failed to load messages: ${error.message}`);
+    }
+  }
+
+  /**
    * Health check endpoint (for testing)
    * @returns {Promise<boolean>} True if API is accessible
    */

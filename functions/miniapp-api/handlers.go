@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -43,6 +44,11 @@ func setupRoutes(db *sql.DB) *gin.Engine {
 			getUserTagsHandler(c, db)
 		})
 		api.OPTIONS("/user/tags", optionsHandler)
+
+		api.GET("/user/tags/:tagId/messages", func(c *gin.Context) {
+			getTagMessagesHandler(c, db)
+		})
+		api.OPTIONS("/user/tags/:tagId/messages", optionsHandler)
 	}
 
 	return r
@@ -106,5 +112,70 @@ func getUserTagsHandler(c *gin.Context, db *sql.DB) {
 	c.JSON(http.StatusOK, APIResponse{
 		Success: true,
 		Data:    tags,
+	})
+}
+
+func getTagMessagesHandler(c *gin.Context, db *sql.DB) {
+	// Get authorization header
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		c.JSON(http.StatusUnauthorized, APIResponse{
+			Success: false,
+			Error:   "Authorization header is required",
+		})
+		return
+	}
+
+	// Extract user ID from Telegram Web App data
+	userID, err := extractUserIDFromAuth(authHeader)
+	if err != nil {
+		log.Printf("Authentication error: %v", err)
+		c.JSON(http.StatusUnauthorized, APIResponse{
+			Success: false,
+			Error:   "Invalid authentication data",
+		})
+		return
+	}
+
+	// Get and validate tagId parameter
+	tagIdStr := c.Param("tagId")
+	tagId, err := strconv.ParseInt(tagIdStr, 10, 64)
+	if err != nil {
+		log.Printf("Invalid tagId parameter: %s", tagIdStr)
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Success: false,
+			Error:   "Invalid tag ID format",
+		})
+		return
+	}
+
+	// Get messages for the specified tag
+	messages, err := getTagMessages(db, userID, tagId)
+	if err != nil {
+		log.Printf("Database error for user %d, tag %d: %v", userID, tagId, err)
+
+		// Check if it's a not found/access denied error
+		if err.Error() == "tag not found or access denied" {
+			c.JSON(http.StatusNotFound, APIResponse{
+				Success: false,
+				Error:   "Tag not found or you don't have access to it",
+			})
+			return
+		}
+
+		// General database error
+		c.JSON(http.StatusInternalServerError, APIResponse{
+			Success: false,
+			Error:   "Failed to fetch messages for tag",
+		})
+		return
+	}
+
+	log.Printf("Successfully retrieved %d messages for user %d, tag %d", len(messages), userID, tagId)
+
+	// Return successful response
+	c.JSON(http.StatusOK, APIResponse{
+		Success: true,
+		Data:    messages,
 	})
 }
