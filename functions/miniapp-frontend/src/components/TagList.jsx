@@ -93,7 +93,7 @@ const TagList = () => {
     );
   }
 
-  if (error) {
+  if (hasApiError) {
     return (
       <div className="tag-list-container">
         <div 
@@ -106,7 +106,9 @@ const TagList = () => {
         >
           <div className="error-icon">⚠️</div>
           <h3 style={{ color: '#ff6b6b' }}>Failed to Load Tags</h3>
-          <p style={{ color: theme.hint_color }}>{error}</p>
+          <p style={{ color: theme.hint_color }}>
+            {hasApiError ? 'Failed to load tags from the server' : 'Unknown error occurred'}
+          </p>
           <button 
             className="retry-button"
             onClick={handleRetry}
