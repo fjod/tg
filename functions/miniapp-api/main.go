@@ -122,8 +122,17 @@ func convertLambdaRequest(request events.APIGatewayProxyRequest) (*http.Request,
 		path = request.Resource
 	}
 
-	log.Printf("Converting request - Original Path: '%s', Resource: '%s', Using: '%s'",
-		request.Path, request.Resource, path)
+	// Replace path parameters in the path
+	// API Gateway gives us path parameters like {tagId} in PathParameters
+	if len(request.PathParameters) > 0 {
+		for key, value := range request.PathParameters {
+			placeholder := "{" + key + "}"
+			path = strings.Replace(path, placeholder, value, -1)
+		}
+	}
+
+	log.Printf("Converting request - Original Path: '%s', Resource: '%s', PathParams: %+v, Final Path: '%s'",
+		request.Path, request.Resource, request.PathParameters, path)
 
 	// Create HTTP request from Lambda request
 	req, err := http.NewRequest(request.HTTPMethod, path, nil)
