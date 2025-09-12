@@ -131,8 +131,13 @@ func convertLambdaRequest(request events.APIGatewayProxyRequest) (*http.Request,
 		}
 	}
 
-	log.Printf("Converting request - Original Path: '%s', Resource: '%s', PathParams: %+v, Final Path: '%s'",
-		request.Path, request.Resource, request.PathParameters, path)
+	log.Printf("=== LAMBDA REQUEST CONVERSION DEBUG ===")
+	log.Printf("Original Path: '%s'", request.Path)
+	log.Printf("Resource: '%s'", request.Resource)
+	log.Printf("PathParameters: %+v", request.PathParameters)
+	log.Printf("Final Path after substitution: '%s'", path)
+	log.Printf("HTTP Method: %s", request.HTTPMethod)
+	log.Printf("=== END LAMBDA REQUEST CONVERSION DEBUG ===")
 
 	// Create HTTP request from Lambda request
 	req, err := http.NewRequest(request.HTTPMethod, path, nil)
