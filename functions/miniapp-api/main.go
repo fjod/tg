@@ -122,12 +122,21 @@ func convertLambdaRequest(request events.APIGatewayProxyRequest) (*http.Request,
 		path = request.Resource
 	}
 
-	// Replace path parameters in the path
-	// API Gateway gives us path parameters like {tagId} in PathParameters
-	if len(request.PathParameters) > 0 {
-		for key, value := range request.PathParameters {
-			placeholder := "{" + key + "}"
-			path = strings.Replace(path, placeholder, value, -1)
+	// Check if we have the original path in headers (Yandex Cloud specific)
+	if originalPath := request.Headers["X-Envoy-Original-Path"]; originalPath != "" {
+		log.Printf("Using X-Envoy-Original-Path: %s", originalPath)
+		path = originalPath
+	} else if originalPath := request.Headers["x-envoy-original-path"]; originalPath != "" {
+		log.Printf("Using x-envoy-original-path: %s", originalPath)
+		path = originalPath
+	} else {
+		// Fallback: Replace path parameters in the path
+		// API Gateway gives us path parameters like {tagId} in PathParameters
+		if len(request.PathParameters) > 0 {
+			for key, value := range request.PathParameters {
+				placeholder := "{" + key + "}"
+				path = strings.Replace(path, placeholder, value, -1)
+			}
 		}
 	}
 
@@ -135,7 +144,8 @@ func convertLambdaRequest(request events.APIGatewayProxyRequest) (*http.Request,
 	log.Printf("Original Path: '%s'", request.Path)
 	log.Printf("Resource: '%s'", request.Resource)
 	log.Printf("PathParameters: %+v", request.PathParameters)
-	log.Printf("Final Path after substitution: '%s'", path)
+	log.Printf("X-Envoy-Original-Path header: '%s'", request.Headers["X-Envoy-Original-Path"])
+	log.Printf("Final Path: '%s'", path)
 	log.Printf("HTTP Method: %s", request.HTTPMethod)
 	log.Printf("=== END LAMBDA REQUEST CONVERSION DEBUG ===")
 
