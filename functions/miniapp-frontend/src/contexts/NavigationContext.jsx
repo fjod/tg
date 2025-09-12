@@ -47,7 +47,7 @@ export const NavigationProvider = ({ children }) => {
       console.error('NavigationContext: Error in navigateToMessages:', error);
       // Don't re-throw to avoid breaking the UI
     }
-  }, [navigateBack]);
+  }, []);
 
   // Navigate back to previous view
   const navigateBack = useCallback(() => {
