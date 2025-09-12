@@ -19,39 +19,23 @@ export const NavigationProvider = ({ children }) => {
 
   // Navigate to messages view for a specific tag
   const navigateToMessages = useCallback((tag) => {
-    console.log('NavigationContext: navigateToMessages called with tag:', tag);
+    // Haptic feedback for navigation
+    telegramApp.hapticFeedback('selection');
     
-    try {
-      // Haptic feedback for navigation
-      console.log('NavigationContext: calling hapticFeedback');
-      telegramApp.hapticFeedback('selection');
-      
-      // Update state
-      console.log('NavigationContext: updating state');
-      setSelectedTag(tag);
-      setCurrentView('messages');
-      setNavigationHistory(prev => {
-        console.log('NavigationContext: updating history from:', prev);
-        return [...prev, 'messages'];
-      });
-      
-      // Update Telegram WebApp back button
-      console.log('NavigationContext: setting up back button');
-      if (telegramApp.tg?.BackButton) {
-        telegramApp.tg.BackButton.show();
-        telegramApp.tg.BackButton.onClick(() => navigateBack());
-      }
-      
-      console.log('NavigationContext: navigateToMessages completed successfully');
-    } catch (error) {
-      console.error('NavigationContext: Error in navigateToMessages:', error);
-      // Don't re-throw to avoid breaking the UI
+    // Update state
+    setSelectedTag(tag);
+    setCurrentView('messages');
+    setNavigationHistory(prev => [...prev, 'messages']);
+    
+    // Update Telegram WebApp back button
+    if (telegramApp.tg?.BackButton) {
+      telegramApp.tg.BackButton.show();
+      telegramApp.tg.BackButton.onClick(() => navigateBack());
     }
   }, []);
 
   // Navigate back to previous view
   const navigateBack = useCallback(() => {
-    console.log('Navigating back, current history:', navigationHistory);
     
     // Haptic feedback
     telegramApp.hapticFeedback('impact', 'light');
@@ -84,7 +68,6 @@ export const NavigationProvider = ({ children }) => {
 
   // Reset navigation to root (tags view)
   const resetNavigation = useCallback(() => {
-    console.log('Resetting navigation to tags view');
     
     setCurrentView('tags');
     setSelectedTag(null);

@@ -124,10 +124,8 @@ func convertLambdaRequest(request events.APIGatewayProxyRequest) (*http.Request,
 
 	// Check if we have the original path in headers (Yandex Cloud specific)
 	if originalPath := request.Headers["X-Envoy-Original-Path"]; originalPath != "" {
-		log.Printf("Using X-Envoy-Original-Path: %s", originalPath)
 		path = originalPath
 	} else if originalPath := request.Headers["x-envoy-original-path"]; originalPath != "" {
-		log.Printf("Using x-envoy-original-path: %s", originalPath)
 		path = originalPath
 	} else {
 		// Fallback: Replace path parameters in the path
@@ -139,15 +137,6 @@ func convertLambdaRequest(request events.APIGatewayProxyRequest) (*http.Request,
 			}
 		}
 	}
-
-	log.Printf("=== LAMBDA REQUEST CONVERSION DEBUG ===")
-	log.Printf("Original Path: '%s'", request.Path)
-	log.Printf("Resource: '%s'", request.Resource)
-	log.Printf("PathParameters: %+v", request.PathParameters)
-	log.Printf("X-Envoy-Original-Path header: '%s'", request.Headers["X-Envoy-Original-Path"])
-	log.Printf("Final Path: '%s'", path)
-	log.Printf("HTTP Method: %s", request.HTTPMethod)
-	log.Printf("=== END LAMBDA REQUEST CONVERSION DEBUG ===")
 
 	// Create HTTP request from Lambda request
 	req, err := http.NewRequest(request.HTTPMethod, path, nil)

@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -47,7 +46,6 @@ func setupRoutes(db *sql.DB) *gin.Engine {
 		api.OPTIONS("/user/tags", optionsHandler)
 
 		api.GET("/user/tags/:tagId/messages", func(c *gin.Context) {
-			log.Printf("=== ROUTE MATCHED: /user/tags/:tagId/messages ===")
 			getTagMessagesHandler(c, db)
 		})
 		api.OPTIONS("/user/tags/:tagId/messages", optionsHandler)
@@ -162,28 +160,15 @@ func getTagMessagesHandler(c *gin.Context, db *sql.DB) {
 
 	// Get and validate tagId parameter
 	tagIdStr := c.Param("tagId")
-	log.Printf("=== TAG ID PARSING DEBUG ===")
-	log.Printf("Raw tagIdStr from c.Param('tagId'): '%s'", tagIdStr)
-	log.Printf("Length of tagIdStr: %d", len(tagIdStr))
-	log.Printf("Request URL: %s", c.Request.URL.String())
-	log.Printf("Request Path: %s", c.Request.URL.Path)
-
-	// Also try getting all params to see what Gin has
-	allParams := c.Params
-	log.Printf("All Gin params: %+v", allParams)
-
 	tagId, err := strconv.ParseInt(tagIdStr, 10, 64)
 	if err != nil {
-		log.Printf("FAILED to parse tagId: '%s', error: %v", tagIdStr, err)
+		log.Printf("Invalid tagId parameter: %s", tagIdStr)
 		c.JSON(http.StatusBadRequest, APIResponse{
 			Success: false,
-			Error:   fmt.Sprintf("Invalid tag ID format: '%s'", tagIdStr),
+			Error:   "Invalid tag ID format",
 		})
 		return
 	}
-
-	log.Printf("Successfully parsed tagId: %d", tagId)
-	log.Printf("=== END TAG ID PARSING DEBUG ===")
 
 	// Get messages for the specified tag
 	messages, err := getTagMessages(db, userID, tagId)

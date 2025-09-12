@@ -5,14 +5,10 @@ const TagItem = ({ tag, onClick }) => {
   const theme = telegramApp.getTheme();
 
   const handleClick = () => {
-    console.log('TagItem clicked:', tag);
-    console.log('About to call hapticFeedback');
     telegramApp.hapticFeedback('selection');
-    console.log('About to call onClick');
     if (onClick) {
       onClick(tag);
     }
-    console.log('TagItem click completed');
   };
 
   const formatDate = (dateString) => {
