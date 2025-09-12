@@ -70,8 +70,14 @@ const TagList = () => {
   };
 
   const handleTagClick = (tag) => {
-    console.log('Tag clicked:', tag);
-    navigateToMessages(tag);
+    console.log('TagList handleTagClick called with:', tag);
+    console.log('About to call navigateToMessages');
+    try {
+      navigateToMessages(tag);
+      console.log('navigateToMessages completed successfully');
+    } catch (error) {
+      console.error('Error in navigateToMessages:', error);
+    }
   };
 
   const handleRetry = () => {

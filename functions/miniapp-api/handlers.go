@@ -56,9 +56,19 @@ func setupRoutes(db *sql.DB) *gin.Engine {
 
 func corsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
+		origin := c.Request.Header.Get("Origin")
+
+		// Allow all yandexcloud.net and website.yandexcloud.net domains
+		if origin != "" && (containsYandexDomain(origin)) {
+			c.Header("Access-Control-Allow-Origin", origin)
+		} else {
+			c.Header("Access-Control-Allow-Origin", "*")
+		}
+
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization")
+		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization, X-Requested-With")
+		c.Header("Access-Control-Allow-Credentials", "false")
+		c.Header("Access-Control-Max-Age", "86400")
 
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusOK)
@@ -67,6 +77,17 @@ func corsMiddleware() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+func containsYandexDomain(origin string) bool {
+	return origin != "" && (
+	// Allow both API gateway and Object Storage domains
+	origin == "https://d5di1npf8thkd9m534rv.8wihnuyr.apigw.yandexcloud.net" ||
+		origin == "https://tg-bot-storage-fjod.website.yandexcloud.net" ||
+		// Allow any yandexcloud.net subdomain for flexibility
+		(len(origin) > 16 && origin[:8] == "https://" &&
+			(origin[len(origin)-16:] == ".yandexcloud.net" ||
+				origin[len(origin)-24:] == ".website.yandexcloud.net")))
 }
 
 func optionsHandler(c *gin.Context) {

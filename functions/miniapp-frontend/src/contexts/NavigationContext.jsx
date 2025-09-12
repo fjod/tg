@@ -19,22 +19,35 @@ export const NavigationProvider = ({ children }) => {
 
   // Navigate to messages view for a specific tag
   const navigateToMessages = useCallback((tag) => {
-    console.log('Navigating to messages for tag:', tag);
+    console.log('NavigationContext: navigateToMessages called with tag:', tag);
     
-    // Haptic feedback for navigation
-    telegramApp.hapticFeedback('selection');
-    
-    // Update state
-    setSelectedTag(tag);
-    setCurrentView('messages');
-    setNavigationHistory(prev => [...prev, 'messages']);
-    
-    // Update Telegram WebApp back button
-    if (telegramApp.tg?.BackButton) {
-      telegramApp.tg.BackButton.show();
-      telegramApp.tg.BackButton.onClick(() => navigateBack());
+    try {
+      // Haptic feedback for navigation
+      console.log('NavigationContext: calling hapticFeedback');
+      telegramApp.hapticFeedback('selection');
+      
+      // Update state
+      console.log('NavigationContext: updating state');
+      setSelectedTag(tag);
+      setCurrentView('messages');
+      setNavigationHistory(prev => {
+        console.log('NavigationContext: updating history from:', prev);
+        return [...prev, 'messages'];
+      });
+      
+      // Update Telegram WebApp back button
+      console.log('NavigationContext: setting up back button');
+      if (telegramApp.tg?.BackButton) {
+        telegramApp.tg.BackButton.show();
+        telegramApp.tg.BackButton.onClick(() => navigateBack());
+      }
+      
+      console.log('NavigationContext: navigateToMessages completed successfully');
+    } catch (error) {
+      console.error('NavigationContext: Error in navigateToMessages:', error);
+      // Don't re-throw to avoid breaking the UI
     }
-  }, []);
+  }, [navigateBack]);
 
   // Navigate back to previous view
   const navigateBack = useCallback(() => {

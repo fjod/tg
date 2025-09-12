@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -15,6 +16,10 @@ var db *sql.DB
 
 func getBotToken() string {
 	return os.Getenv("TELEGRAM_BOT_TOKEN")
+}
+
+func containsPattern(origin, pattern string) bool {
+	return strings.Contains(origin, pattern)
 }
 
 func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -80,9 +85,24 @@ func Handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	if recorder.headers == nil {
 		recorder.headers = make(map[string]string)
 	}
-	recorder.headers["Access-Control-Allow-Origin"] = "*"
+
+	// Set CORS headers to allow both domain patterns
+	origin := request.Headers["origin"]
+	if origin == "" {
+		origin = request.Headers["Origin"]
+	}
+
+	// Allow both yandexcloud.net and website.yandexcloud.net domains
+	if origin != "" && (containsPattern(origin, "yandexcloud.net") ||
+		containsPattern(origin, "website.yandexcloud.net")) {
+		recorder.headers["Access-Control-Allow-Origin"] = origin
+	} else {
+		recorder.headers["Access-Control-Allow-Origin"] = "*"
+	}
+
 	recorder.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
 	recorder.headers["Access-Control-Allow-Headers"] = "Origin, Content-Type, Authorization"
+	recorder.headers["Access-Control-Allow-Credentials"] = "false"
 
 	log.Printf("Returning response - Status: %d, Body length: %d, Headers: %+v",
 		recorder.statusCode, len(recorder.body), recorder.headers)
