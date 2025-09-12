@@ -181,7 +181,35 @@ H:\tg\tg\functions\bot\
 - **API Integration**: Removed mock data, using live PostgreSQL data
 - **Telegram SDK**: Full message redirection with proper URL generation
 
+### ✅ Phase 5: Navigation Bug Fixes & Optimization (Completed - 2025-09-12)
+
+**Issue Resolution**: Mini-app was showing dialogue popup instead of navigating to MessageList when clicking tags
+
+#### Critical Bug Fixes:
+1. **Frontend JavaScript Error**: Fixed "Cannot access 'h' before initialization" error in NavigationContext useCallback dependency
+2. **CORS Configuration**: Enhanced API Gateway CORS to support both `*.yandexcloud.net` and `*.website.yandexcloud.net` domains
+3. **API Gateway Route Missing**: Added missing `/api/user/tags/{tagId}/messages` endpoint configuration in API Gateway YAML
+4. **Path Parameter Parsing**: Fixed Lambda function to use `X-Envoy-Original-Path` header for correct parameter extraction
+
+#### Technical Solutions Implemented:
+- **Enhanced CORS Middleware**: Updated both Lambda and Gin CORS handlers to properly support Yandex Cloud domains
+- **Smart Path Resolution**: Lambda function now prioritizes `X-Envoy-Original-Path` header over `PathParameters` for Yandex Cloud compatibility  
+- **API Gateway Configuration**: Added complete endpoint definitions with proper OPTIONS support for preflight requests
+- **Error Context Improvements**: Fixed circular dependencies in NavigationContext hook dependencies
+
+#### Navigation Flow Restored:
+✅ **Complete End-to-End Flow**: 
+- Click tag in TagList → Navigate to MessageList within same mini-app window
+- Load messages via API call with proper authentication
+- Display rich message previews with metadata
+- Click message → Redirect to original Telegram message
+
+#### Performance & UX Improvements:
+- **Debug Logging Cleanup**: Removed all temporary debug logs for production-ready performance
+- **Build Optimization**: Frontend size reduced by 220 bytes after debug removal
+- **Error Handling**: Maintained comprehensive error handling without debug noise
+
 ---
-*Last Updated: 2025-01-15*
+*Last Updated: 2025-09-12*
 *Test Coverage: message.go (100%), handler.go (16.1%)*
-*Status: Complete tag-to-message navigation system with live database integration*
+*Status: Fully functional mini-app with complete tag-to-message navigation, CORS fixes, and production-ready deployment*
