@@ -23,11 +23,8 @@ const MessageList = () => {
       setLoading(true);
       clearError('api');
       
-      console.log('Loading messages for tag:', tagId);
-      
       const tagMessages = await apiService.getTagMessages(tagId);
       setMessages(tagMessages);
-      console.log('Messages loaded successfully:', tagMessages);
       
     } catch (error) {
       console.error('Failed to load messages :', error);

@@ -17,29 +17,16 @@ const MessageItem = ({ message, onClick }) => {
   const { addError } = useError();
 
   const handleClick = async () => {
-    console.log('🔵 MessageItem: Click handler started');
-    console.log('🔵 MessageItem: Message data:', {
-      id: message.id,
-      telegram_message_id: message.telegram_message_id,
-      message_type: message.message_type,
-      hasOnClickProp: !!onClick
-    });
-    
     try {
       telegramApp.hapticFeedback('selection');
-      console.log('🔵 MessageItem: Haptic feedback sent');
       
       if (onClick) {
-        console.log('🔵 MessageItem: Using provided onClick callback');
         await onClick(message);
       } else {
-        console.log('🔵 MessageItem: Using default behavior - redirecting to Telegram');
         // Default behavior: try to redirect to Telegram
         redirectToTelegram(message);
       }
-      console.log('🟢 MessageItem: Click handler completed successfully');
     } catch (error) {
-      console.error('🔴 MessageItem: Error in click handler:', error);
       addError('general', error, { 
         messageId: message.id,
         action: 'message_click'
@@ -48,22 +35,13 @@ const MessageItem = ({ message, onClick }) => {
   };
 
   const redirectToTelegram = (message) => {
-    console.log('🔵 MessageItem: redirectToTelegram called with:', {
-      messageId: message.id,
-      telegramMessageId: message.telegram_message_id
-    });
-    
     try {
       const success = telegramApp.redirectToMessage(message);
-      console.log('🔵 MessageItem: redirectToMessage returned:', success);
       
       if (!success) {
-        console.error('🔴 MessageItem: Redirect failed - success was false');
         throw new Error('Failed to redirect to Telegram message');
       }
-      console.log('🟢 MessageItem: Redirect completed successfully');
     } catch (error) {
-      console.error('🔴 MessageItem: Exception in redirectToTelegram:', error);
       addError('general', error, { 
         messageId: message.id,
         telegramMessageId: message.telegram_message_id,

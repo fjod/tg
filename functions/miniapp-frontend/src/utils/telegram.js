@@ -71,20 +71,10 @@ class TelegramWebApp {
    */
   detectPlatform() {
     if (!this.tg) {
-      console.log('🔵 TelegramApp: No Telegram WebApp detected - platform unknown');
       return 'unknown';
     }
 
     const platform = this.tg.platform;
-    const version = this.tg.version;
-    const colorScheme = this.tg.colorScheme;
-    
-    console.log('🔵 TelegramApp: Platform detection:', {
-      platform,
-      version,
-      colorScheme,
-      userAgent: navigator.userAgent
-    });
 
     // Platform detection based on Telegram WebApp platform property
     if (platform) {
@@ -225,39 +215,23 @@ class TelegramWebApp {
    * @param {Object} options - Additional options
    */
   openTelegramLink(url, options = {}) {
-    console.log('🔵 TelegramApp: openTelegramLink called');
-    console.log('🔵 TelegramApp: URL:', url);
-    console.log('🔵 TelegramApp: Options:', options);
-    console.log('🔵 TelegramApp: this.tg exists:', !!this.tg);
-    console.log('🔵 TelegramApp: this.tg.openTelegramLink exists:', !!this.tg?.openTelegramLink);
-    
     if (!url) {
-      console.error('🔴 TelegramApp: No URL provided for Telegram link');
       return false;
     }
 
     if (this.tg?.openTelegramLink) {
-      console.log('🔵 TelegramApp: Using Telegram WebApp openTelegramLink method');
       try {
         this.tg.openTelegramLink(url, options);
-        console.log('🟢 TelegramApp: openTelegramLink called successfully');
         return true;
       } catch (error) {
-        console.error('🔴 TelegramApp: Failed to open Telegram link via WebApp:', error);
         return false;
       }
     } else {
-      console.warn('🟡 TelegramApp: Telegram WebApp openTelegramLink not available, using fallback');
-      console.log('🔵 TelegramApp: WebApp object:', this.tg);
-      
       // Fallback for development or if WebApp API is unavailable
       try {
-        console.log('🔵 TelegramApp: Using window.open fallback');
         window.open(url, '_blank');
-        console.log('🟢 TelegramApp: window.open called successfully');
         return true;
       } catch (error) {
-        console.error('🔴 TelegramApp: Failed to open Telegram link via fallback:', error);
         return false;
       }
     }
@@ -270,152 +244,70 @@ class TelegramWebApp {
    * @returns {string} Telegram message URL
    */
   generateMessageUrl(messageId, chatId = null) {
-    console.log('🔵 TelegramApp: generateMessageUrl called');
-    console.log('🔵 TelegramApp: Input messageId:', messageId);
-    console.log('🔵 TelegramApp: Input chatId:', chatId);
-    console.log('🔵 TelegramApp: this.user:', this.user);
-    console.log('🔵 TelegramApp: this.user?.id:', this.user?.id);
-    console.log('🔵 TelegramApp: this.user?.username:', this.user?.username);
-    
     if (!messageId) {
-      console.error('🔴 TelegramApp: Message ID is required for URL generation');
       return null;
     }
 
-    // Detect platform to choose appropriate URL scheme
-    const platform = this.detectPlatform();
-    const isNative = this.isNativeClient();
-    console.log('🔵 TelegramApp: Detected platform:', platform, 'isNative:', isNative);
-
-    // For native clients (desktop/mobile), try tg:// protocol schemes
-    if (isNative && this.user?.username) {
-      // Use tg://resolve for native clients with username
-      const tgUrl = `tg://resolve?domain=${this.user.username}&post=${messageId}`;
-      console.log('🔵 TelegramApp: Generated tg:// URL for native client:', tgUrl);
-      return tgUrl;
-    }
-
-    // For web clients or fallback, use https://t.me/ URLs
+    // For web clients, use username-based URL format
     if (this.user?.username) {
-      // Try using username format for saved messages
-      const url = `https://t.me/${this.user.username}/${messageId}`;
-      console.log('🔵 TelegramApp: Generated https://t.me/ URL for web client:', url);
-      return url;
+      return `https://t.me/${this.user.username}/${messageId}`;
     }
     
-    // Last resort fallback: Try the original format
+    // Fallback: Try the original format
     const targetChatId = chatId || this.user?.id;
-    console.log('🔵 TelegramApp: targetChatId resolved to:', targetChatId);
     
     if (!targetChatId) {
-      console.error('🔴 TelegramApp: No chat ID available for URL generation');
-      console.error('🔴 TelegramApp: chatId provided:', chatId);
-      console.error('🔴 TelegramApp: this.user?.id:', this.user?.id);
       return null;
     }
 
-    // Original format as final fallback
-    const url = `https://t.me/c/${targetChatId}/${messageId}`;
-    console.log('🔵 TelegramApp: Generated fallback URL:', url);
-    
-    return url;
+    return `https://t.me/c/${targetChatId}/${messageId}`;
   }
 
   /**
-   * Redirect to a specific Telegram message with multiple fallback strategies
+   * Redirect to a specific Telegram message
    * @param {Object} message - Message object with telegram_message_id
    * @param {number} chatId - Optional chat ID, uses current user if not provided
    * @returns {boolean} True if redirection was attempted
    */
   redirectToMessage(message, chatId = null) {
-    console.log('🔵 TelegramApp: redirectToMessage called');
-    console.log('🔵 TelegramApp: Input message:', message);
-    console.log('🔵 TelegramApp: Input chatId:', chatId);
-    console.log('🔵 TelegramApp: Current user:', this.user);
-    console.log('🔵 TelegramApp: Telegram WebApp available:', !!this.tg);
-    console.log('🔵 TelegramApp: InitData available:', !!this.initData);
-    
     if (!message || !message.telegram_message_id) {
-      console.error('🔴 TelegramApp: Invalid message object for redirection');
-      console.error('🔴 TelegramApp: Message exists:', !!message);
-      console.error('🔴 TelegramApp: telegram_message_id exists:', !!message?.telegram_message_id);
       this.showAlert('Unable to redirect to message: Invalid message data');
       return false;
     }
 
-    return this.tryMultipleRedirectionStrategies(message, chatId);
-  }
-
-  /**
-   * Try multiple redirection strategies for better compatibility
-   * @param {Object} message - Message object with telegram_message_id
-   * @param {number} chatId - Optional chat ID
-   * @returns {boolean} True if any strategy was attempted
-   */
-  tryMultipleRedirectionStrategies(message, chatId = null) {
-    const messageId = message.telegram_message_id;
     const platform = this.detectPlatform();
-    const isNative = this.isNativeClient();
+    
+    // Only attempt redirect in web view, show helpful message for other platforms
+    if (platform !== 'web') {
+      this.showAlert('💡 Message redirection to Saved Messages only works in Telegram Web.\n\nTo view this message:\n1. Open Telegram in your web browser\n2. Go to Saved Messages\n3. Look for message ID: ' + message.telegram_message_id);
+      return false;
+    }
 
-    console.log('🔵 TelegramApp: Trying multiple redirection strategies...');
-    console.log('🔵 TelegramApp: Platform:', platform, 'IsNative:', isNative);
-
-    // Strategy 1: Platform-specific primary approach
+    // For web clients, attempt redirection
     try {
-      const primaryUrl = this.generateMessageUrl(messageId, chatId);
-      if (primaryUrl) {
-        console.log('🔵 TelegramApp: Strategy 1 - Primary URL:', primaryUrl);
-        const success = this.openTelegramLink(primaryUrl);
-        if (success) {
-          this.hapticFeedback('impact', 'medium');
-          console.log('🟢 TelegramApp: Strategy 1 succeeded');
-          return true;
-        }
+      const messageUrl = this.generateMessageUrl(message.telegram_message_id, chatId);
+      
+      if (!messageUrl) {
+        this.showAlert('Unable to generate message link');
+        return false;
       }
+
+      const success = this.openTelegramLink(messageUrl);
+      
+      if (success) {
+        this.hapticFeedback('impact', 'medium');
+      } else {
+        this.showAlert('Unable to open message. Please navigate to Saved Messages manually.');
+      }
+
+      return success;
     } catch (error) {
-      console.warn('🟡 TelegramApp: Strategy 1 failed:', error);
+      this.showAlert('Unable to open message in Telegram. Please try again.');
+      this.hapticFeedback('notification', 'error');
+      return false;
     }
-
-    // Strategy 2: For native clients, try opening just Saved Messages chat
-    if (isNative && this.user?.username) {
-      try {
-        const savedMessagesUrl = `tg://resolve?domain=${this.user.username}`;
-        console.log('🔵 TelegramApp: Strategy 2 - Saved Messages chat URL:', savedMessagesUrl);
-        const success = this.openTelegramLink(savedMessagesUrl);
-        if (success) {
-          this.hapticFeedback('impact', 'medium');
-          console.log('🟢 TelegramApp: Strategy 2 succeeded - opened Saved Messages chat');
-          this.showAlert(`Opened your Saved Messages. Look for message #${messageId}`);
-          return true;
-        }
-      } catch (error) {
-        console.warn('🟡 TelegramApp: Strategy 2 failed:', error);
-      }
-    }
-
-    // Strategy 3: For web clients, try alternative URL format
-    if (!isNative && this.user?.username) {
-      try {
-        const webUrl = `https://t.me/${this.user.username}`;
-        console.log('🔵 TelegramApp: Strategy 3 - Web chat URL:', webUrl);
-        const success = this.openTelegramLink(webUrl);
-        if (success) {
-          this.hapticFeedback('impact', 'medium');
-          console.log('🟢 TelegramApp: Strategy 3 succeeded - opened personal chat');
-          this.showAlert(`Opened your personal chat. Look for message #${messageId}`);
-          return true;
-        }
-      } catch (error) {
-        console.warn('🟡 TelegramApp: Strategy 3 failed:', error);
-      }
-    }
-
-    // Strategy 4: Last resort - inform user about manual navigation
-    console.error('🔴 TelegramApp: All redirection strategies failed');
-    this.showAlert(`Unable to redirect directly. Please manually go to Saved Messages and look for message ID: ${messageId}`);
-    this.hapticFeedback('notification', 'error');
-    return false;
   }
+
 }
 
 // Create singleton instance
