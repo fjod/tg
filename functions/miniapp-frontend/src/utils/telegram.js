@@ -171,30 +171,39 @@ class TelegramWebApp {
    * @param {Object} options - Additional options
    */
   openTelegramLink(url, options = {}) {
+    console.log('🔵 TelegramApp: openTelegramLink called');
+    console.log('🔵 TelegramApp: URL:', url);
+    console.log('🔵 TelegramApp: Options:', options);
+    console.log('🔵 TelegramApp: this.tg exists:', !!this.tg);
+    console.log('🔵 TelegramApp: this.tg.openTelegramLink exists:', !!this.tg?.openTelegramLink);
+    
     if (!url) {
-      console.error('No URL provided for Telegram link');
+      console.error('🔴 TelegramApp: No URL provided for Telegram link');
       return false;
     }
 
-    console.log('Opening Telegram link:', url);
-
     if (this.tg?.openTelegramLink) {
+      console.log('🔵 TelegramApp: Using Telegram WebApp openTelegramLink method');
       try {
         this.tg.openTelegramLink(url, options);
+        console.log('🟢 TelegramApp: openTelegramLink called successfully');
         return true;
       } catch (error) {
-        console.error('Failed to open Telegram link via WebApp:', error);
+        console.error('🔴 TelegramApp: Failed to open Telegram link via WebApp:', error);
         return false;
       }
     } else {
-      console.warn('Telegram WebApp openTelegramLink not available, using fallback');
+      console.warn('🟡 TelegramApp: Telegram WebApp openTelegramLink not available, using fallback');
+      console.log('🔵 TelegramApp: WebApp object:', this.tg);
       
       // Fallback for development or if WebApp API is unavailable
       try {
+        console.log('🔵 TelegramApp: Using window.open fallback');
         window.open(url, '_blank');
+        console.log('🟢 TelegramApp: window.open called successfully');
         return true;
       } catch (error) {
-        console.error('Failed to open Telegram link via fallback:', error);
+        console.error('🔴 TelegramApp: Failed to open Telegram link via fallback:', error);
         return false;
       }
     }
@@ -207,23 +216,32 @@ class TelegramWebApp {
    * @returns {string} Telegram message URL
    */
   generateMessageUrl(messageId, chatId = null) {
+    console.log('🔵 TelegramApp: generateMessageUrl called');
+    console.log('🔵 TelegramApp: Input messageId:', messageId);
+    console.log('🔵 TelegramApp: Input chatId:', chatId);
+    console.log('🔵 TelegramApp: this.user:', this.user);
+    console.log('🔵 TelegramApp: this.user?.id:', this.user?.id);
+    
     if (!messageId) {
-      console.error('Message ID is required for URL generation');
+      console.error('🔴 TelegramApp: Message ID is required for URL generation');
       return null;
     }
 
     // Use provided chatId or fallback to current user
     const targetChatId = chatId || this.user?.id;
+    console.log('🔵 TelegramApp: targetChatId resolved to:', targetChatId);
     
     if (!targetChatId) {
-      console.error('No chat ID available for URL generation');
+      console.error('🔴 TelegramApp: No chat ID available for URL generation');
+      console.error('🔴 TelegramApp: chatId provided:', chatId);
+      console.error('🔴 TelegramApp: this.user?.id:', this.user?.id);
       return null;
     }
 
     // For private chats, use the direct message format
     // Note: This format may need adjustment based on actual chat structure
     const url = `https://t.me/c/${targetChatId}/${messageId}`;
-    console.log('Generated message URL:', url);
+    console.log('🔵 TelegramApp: Generated message URL:', url);
     
     return url;
   }
@@ -235,32 +253,47 @@ class TelegramWebApp {
    * @returns {boolean} True if redirection was attempted
    */
   redirectToMessage(message, chatId = null) {
+    console.log('🔵 TelegramApp: redirectToMessage called');
+    console.log('🔵 TelegramApp: Input message:', message);
+    console.log('🔵 TelegramApp: Input chatId:', chatId);
+    console.log('🔵 TelegramApp: Current user:', this.user);
+    console.log('🔵 TelegramApp: Telegram WebApp available:', !!this.tg);
+    console.log('🔵 TelegramApp: InitData available:', !!this.initData);
+    
     if (!message || !message.telegram_message_id) {
-      console.error('Invalid message object for redirection');
+      console.error('🔴 TelegramApp: Invalid message object for redirection');
+      console.error('🔴 TelegramApp: Message exists:', !!message);
+      console.error('🔴 TelegramApp: telegram_message_id exists:', !!message?.telegram_message_id);
       this.showAlert('Unable to redirect to message: Invalid message data');
       return false;
     }
 
     try {
+      console.log('🔵 TelegramApp: Generating message URL...');
       const messageUrl = this.generateMessageUrl(message.telegram_message_id, chatId);
+      console.log('🔵 TelegramApp: Generated URL:', messageUrl);
       
       if (!messageUrl) {
+        console.error('🔴 TelegramApp: URL generation failed');
         throw new Error('Failed to generate message URL');
       }
 
+      console.log('🔵 TelegramApp: Opening Telegram link...');
       const success = this.openTelegramLink(messageUrl);
+      console.log('🔵 TelegramApp: openTelegramLink returned:', success);
       
       if (success) {
         // Provide haptic feedback for successful redirection
         this.hapticFeedback('impact', 'medium');
-        console.log('Successfully redirected to message:', message.telegram_message_id);
+        console.log('🟢 TelegramApp: Successfully redirected to message:', message.telegram_message_id);
       } else {
+        console.error('🔴 TelegramApp: openTelegramLink returned false');
         throw new Error('Failed to open Telegram link');
       }
 
       return success;
     } catch (error) {
-      console.error('Failed to redirect to message:', error);
+      console.error('🔴 TelegramApp: Exception in redirectToMessage:', error);
       this.showAlert('Unable to open message in Telegram. Please try again.');
       this.hapticFeedback('notification', 'error');
       return false;
