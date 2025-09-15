@@ -52,15 +52,6 @@ const MessageList = () => {
     navigateBack();
   };
 
-  const handleMessageClick = async (message) => {
-    try {
-      // Default behavior - redirect to Telegram
-      // MessageItem component handles the actual redirection
-      console.log('Message clicked:', message);
-    } catch (error) {
-      console.error('Error handling message click:', error);
-    }
-  };
 
 
   if (!selectedTag) {
@@ -250,7 +241,6 @@ const MessageList = () => {
               <MessageItem
                 key={message.id}
                 message={message}
-                onClick={handleMessageClick}
               />
             ))}
           </div>
