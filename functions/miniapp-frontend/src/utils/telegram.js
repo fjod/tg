@@ -221,13 +221,24 @@ class TelegramWebApp {
     console.log('🔵 TelegramApp: Input chatId:', chatId);
     console.log('🔵 TelegramApp: this.user:', this.user);
     console.log('🔵 TelegramApp: this.user?.id:', this.user?.id);
+    console.log('🔵 TelegramApp: this.user?.username:', this.user?.username);
     
     if (!messageId) {
       console.error('🔴 TelegramApp: Message ID is required for URL generation');
       return null;
     }
 
-    // Use provided chatId or fallback to current user
+    // For Saved Messages, we need to try alternative URL formats
+    // since t.me/c/user_id/message_id doesn't work for saved messages
+    
+    if (this.user?.username) {
+      // Try using username format for saved messages
+      const url = `https://t.me/${this.user.username}?msg=${messageId}`;
+      console.log('🔵 TelegramApp: Generated username-based URL for Saved Messages:', url);
+      return url;
+    }
+    
+    // Fallback: Try the original format (may not work for Saved Messages)
     const targetChatId = chatId || this.user?.id;
     console.log('🔵 TelegramApp: targetChatId resolved to:', targetChatId);
     
@@ -238,10 +249,9 @@ class TelegramWebApp {
       return null;
     }
 
-    // For private chats, use the direct message format
-    // Note: This format may need adjustment based on actual chat structure
+    // Original format (known to not work for Saved Messages but keeping as fallback)
     const url = `https://t.me/c/${targetChatId}/${messageId}`;
-    console.log('🔵 TelegramApp: Generated message URL:', url);
+    console.log('🔵 TelegramApp: Generated fallback URL (may not work for Saved Messages):', url);
     
     return url;
   }
@@ -286,6 +296,10 @@ class TelegramWebApp {
         // Provide haptic feedback for successful redirection
         this.hapticFeedback('impact', 'medium');
         console.log('🟢 TelegramApp: Successfully redirected to message:', message.telegram_message_id);
+        
+        // Note: The actual success/failure will be determined by Telegram's response
+        // If we get a CHANNEL_INVALID error, it means the URL format is wrong for Saved Messages
+        console.log('🔵 TelegramApp: Note - Check for CHANNEL_INVALID errors in console, which indicate Saved Messages URL format issues');
       } else {
         console.error('🔴 TelegramApp: openTelegramLink returned false');
         throw new Error('Failed to open Telegram link');
