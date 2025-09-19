@@ -2,9 +2,10 @@ package main
 
 import (
 	"database/sql"
-	"log"
 	"net/http"
 	"strconv"
+
+	"log/slog"
 
 	"github.com/gin-gonic/gin"
 )
@@ -98,30 +99,16 @@ func optionsHandler(c *gin.Context) {
 
 func getUserTagsHandler(c *gin.Context, db *sql.DB) {
 	// Get authorization header
-	authHeader := c.GetHeader("Authorization")
-	if authHeader == "" {
-		c.JSON(http.StatusUnauthorized, APIResponse{
-			Success: false,
-			Error:   "Authorization header is required!",
-		})
-		return
-	}
-
-	// Extract user ID from Telegram Web App data
-	userID, err := extractUserIDFromAuth(authHeader)
-	if err != nil {
-		log.Printf("Authentication error: %v", err)
-		c.JSON(http.StatusUnauthorized, APIResponse{
-			Success: false,
-			Error:   "Invalid authentication data",
-		})
+	userID := getUserID(c, defaultEnvProvider, defaultParserFactory)
+	if userID == nil {
 		return
 	}
 
 	// Get user's tags with message counts
-	tags, err := getUserTagsWithCounts(db, userID)
+	tags, err := getUserTagsWithCounts(db, *userID)
 	if err != nil {
-		log.Printf("Database error for user %d: %v", userID, err)
+		slog.Error("Database error", "user_id", *userID, "error", err)
+
 		c.JSON(http.StatusInternalServerError, APIResponse{
 			Success: false,
 			Error:   "Failed to fetch user tags",
@@ -136,67 +123,102 @@ func getUserTagsHandler(c *gin.Context, db *sql.DB) {
 	})
 }
 
-func getTagMessagesHandler(c *gin.Context, db *sql.DB) {
-	// Get authorization header
+type EnvProvider interface {
+	GetBotToken() string
+}
+type prodEnvProvider struct{}
+
+func (m *prodEnvProvider) GetBotToken() string {
+	return getBotToken()
+}
+
+var defaultEnvProvider = &prodEnvProvider{}
+
+func getUserID(c *gin.Context, p EnvProvider, factory ParserFactory) *int64 {
 	authHeader := c.GetHeader("Authorization")
 	if authHeader == "" {
 		c.JSON(http.StatusUnauthorized, APIResponse{
 			Success: false,
-			Error:   "Authorization header is required",
+			Error:   "Authorization header is required!",
 		})
-		return
+		return nil
 	}
 
 	// Extract user ID from Telegram Web App data
-	userID, err := extractUserIDFromAuth(authHeader)
+	userID, err := extractUserIDFromAuth(authHeader, p, factory)
 	if err != nil {
-		log.Printf("Authentication error: %v", err)
+		slog.Error("Authentication error", "error", err)
 		c.JSON(http.StatusUnauthorized, APIResponse{
 			Success: false,
 			Error:   "Invalid authentication data",
 		})
-		return
+		return nil
 	}
+	return &userID
+}
 
-	// Get and validate tagId parameter
-	tagIdStr := c.Param("tagId")
-	tagId, err := strconv.ParseInt(tagIdStr, 10, 64)
+func getTagID(c *gin.Context) *int64 {
+	tagIDStr := c.Param("tagId")
+	tagID, err := strconv.ParseInt(tagIDStr, 10, 64)
 	if err != nil {
-		log.Printf("Invalid tagId parameter: %s", tagIdStr)
+		slog.Error("Invalid tagId parameter", "tag_id_str", tagIDStr, "error", err)
 		c.JSON(http.StatusBadRequest, APIResponse{
 			Success: false,
 			Error:   "Invalid tag ID format",
 		})
+		return nil
+	}
+	return &tagID
+}
+
+func getTagMessagesHandler(c *gin.Context, db *sql.DB) {
+	// Get authorization header
+	userID := getUserID(c, defaultEnvProvider, defaultParserFactory)
+	if userID == nil {
+		return
+	}
+
+	// Get and validate tagId parameter
+	tagID := getTagID(c)
+	if tagID == nil {
 		return
 	}
 
 	// Get messages for the specified tag
-	messages, err := getTagMessages(db, userID, tagId)
+	messages, err := getTagMessages(db, *userID, *tagID)
 	if err != nil {
-		log.Printf("Database error for user %d, tag %d: %v", userID, tagId, err)
-
-		// Check if it's a not found/access denied error
-		if err.Error() == "tag not found or access denied" {
-			c.JSON(http.StatusNotFound, APIResponse{
-				Success: false,
-				Error:   "Tag not found or you don't have access to it",
-			})
-			return
-		}
-
-		// General database error
-		c.JSON(http.StatusInternalServerError, APIResponse{
-			Success: false,
-			Error:   "Failed to fetch messages for tag",
-		})
+		printMessagesError(c, userID, tagID, err)
 		return
 	}
 
-	log.Printf("Successfully retrieved %d messages for user %d, tag %d", len(messages), userID, tagId)
+	slog.Info("Successfully retrieved messages",
+		"message_count", len(messages),
+		"user_id", *userID,
+		"tag_id", *tagID)
 
 	// Return successful response
 	c.JSON(http.StatusOK, APIResponse{
 		Success: true,
 		Data:    messages,
 	})
+}
+
+func printMessagesError(c *gin.Context, userID *int64, tagID *int64, err error) {
+	slog.Error("Database error", "user_id", *userID, "tag_id", *tagID, "error", err)
+
+	// Check if it's a not found/access denied error
+	if err.Error() == "tag not found or access denied" {
+		c.JSON(http.StatusNotFound, APIResponse{
+			Success: false,
+			Error:   "Tag not found or you don't have access to it",
+		})
+		return
+	}
+
+	// General database error
+	c.JSON(http.StatusInternalServerError, APIResponse{
+		Success: false,
+		Error:   "Failed to fetch messages for tag",
+	})
+	return
 }
