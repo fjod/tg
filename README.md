@@ -4,6 +4,8 @@ The project works fine for mvp.
 There are two big limitations ->
 - telegram already has tags for premium users
 - redirect from mini-app works only in webtelegram. In desktop or mobile clients there are no way to redirect (or I did not manage to find it).
+
+  
 This project was made for studying purposes, might help somebody. All front-end code written with Claude. Backend is mostly written with Claude but with my supervision and refactorings.
 Everything is hosted in yandex cloud except postgres db, it's too expensive to host it for mvp there.
 
